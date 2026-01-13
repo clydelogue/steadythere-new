@@ -10,9 +10,19 @@ import {
   ChevronLeft,
   Sparkles,
   Plus,
+  LogOut,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -25,6 +35,7 @@ const navigation = [
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { profile, currentOrg, organizations, switchOrganization, signOut } = useAuth();
 
   return (
     <motion.aside
@@ -50,6 +61,33 @@ export function AppSidebar() {
           )}
         </Link>
       </div>
+
+      {/* Organization Switcher */}
+      {!collapsed && currentOrg && (
+        <div className="p-3 border-b border-sidebar-border">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors text-sm">
+                <span className="truncate font-medium">{currentOrg.name}</span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0 text-sidebar-foreground/50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {organizations.map((om) => (
+                <DropdownMenuItem
+                  key={om.organization_id}
+                  onClick={() => switchOrganization(om.organization_id)}
+                  className={cn(
+                    om.organization_id === currentOrg.id && "bg-accent"
+                  )}
+                >
+                  {om.organization?.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
 
       {/* New Event Button */}
       <div className="p-3">
@@ -96,6 +134,49 @@ export function AppSidebar() {
           );
         })}
       </nav>
+
+      {/* User Profile & Sign Out */}
+      {profile && (
+        <div className="p-3 border-t border-sidebar-border">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors",
+                collapsed && "justify-center px-0"
+              )}>
+                <img
+                  src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.email}`}
+                  alt={profile.name || 'User'}
+                  className="w-8 h-8 rounded-full flex-shrink-0"
+                />
+                {!collapsed && (
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">
+                      {profile.name || profile.email.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-sidebar-foreground/50 truncate">
+                      {profile.email}
+                    </p>
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem asChild>
+                <Link to="/settings">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="text-destructive">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
 
       {/* Collapse Toggle */}
       <div className="p-3 border-t border-sidebar-border">
