@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { mockEventTypes } from '@/data/mockData';
+import { useEventTypes } from '@/hooks/useEventTypes';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Sparkles, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,11 +11,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { format, addDays } from 'date-fns';
+import { format, addDays, subDays, parseISO } from 'date-fns';
+import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
 
+type MilestoneCategory = Database['public']['Enums']['milestone_category'];
 type Step = 'type' | 'details' | 'milestones';
 
-const sampleMilestones = [
+interface GeneratedMilestone {
+  id: number;
+  title: string;
+  category: MilestoneCategory;
+  daysBeforeEvent: number;
+}
+
+const sampleMilestones: GeneratedMilestone[] = [
   { id: 1, title: 'Book venue and sign contract', category: 'VENUE', daysBeforeEvent: 90 },
   { id: 2, title: 'Finalize catering menu and confirm headcount', category: 'CATERING', daysBeforeEvent: 60 },
   { id: 3, title: 'Design and send save-the-date invitations', category: 'MARKETING', daysBeforeEvent: 75 },
@@ -28,6 +40,9 @@ const sampleMilestones = [
 
 const NewEvent = () => {
   const navigate = useNavigate();
+  const { currentOrg, user } = useAuth();
+  const { data: eventTypes = [], isLoading: eventTypesLoading } = useEventTypes();
+  
   const [step, setStep] = useState<Step>('type');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [eventName, setEventName] = useState('');
@@ -35,7 +50,8 @@ const NewEvent = () => {
   const [venue, setVenue] = useState('');
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedMilestones, setGeneratedMilestones] = useState<typeof sampleMilestones>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [generatedMilestones, setGeneratedMilestones] = useState<GeneratedMilestone[]>([]);
   const [selectedMilestones, setSelectedMilestones] = useState<number[]>([]);
 
   const handleTypeSelect = (typeId: string) => {
@@ -58,12 +74,79 @@ const NewEvent = () => {
     );
   };
 
-  const handleCreate = () => {
-    // In real app, would save to database
-    navigate('/');
+  const handleCreate = async () => {
+    if (!currentOrg || !user) {
+      toast.error('You must be logged in to create an event');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      // Create the event
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          name: eventName,
+          event_date: eventDate,
+          venue: venue || null,
+          description: description || null,
+          event_type_id: selectedType,
+          organization_id: currentOrg.id,
+          owner_id: user.id,
+          status: 'PLANNING'
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Create the selected milestones
+      const milestonesToCreate = generatedMilestones
+        .filter(m => selectedMilestones.includes(m.id))
+        .map((m, index) => {
+          const eventDateObj = parseISO(eventDate);
+          const dueDate = subDays(eventDateObj, m.daysBeforeEvent);
+          
+          return {
+            title: m.title,
+            category: m.category,
+            due_date: format(dueDate, 'yyyy-MM-dd'),
+            event_id: event.id,
+            status: 'NOT_STARTED' as const,
+            is_ai_generated: true,
+            sort_order: index
+          };
+        });
+
+      if (milestonesToCreate.length > 0) {
+        const { error: milestonesError } = await supabase
+          .from('milestones')
+          .insert(milestonesToCreate);
+
+        if (milestonesError) throw milestonesError;
+      }
+
+      toast.success('Event created successfully!');
+      navigate(`/events/${event.id}`);
+    } catch (error: any) {
+      console.error('Error creating event:', error);
+      toast.error(error.message || 'Failed to create event');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const selectedEventType = mockEventTypes.find(t => t.id === selectedType);
+  const selectedEventType = eventTypes.find(t => t.id === selectedType);
+
+  if (eventTypesLoading) {
+    return (
+      <AppLayout title="Create New Event" subtitle="Let's set up your event">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Create New Event" subtitle="Let's set up your event">
@@ -108,28 +191,34 @@ const NewEvent = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {mockEventTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => handleTypeSelect(type.id)}
-                    className={cn(
-                      "p-6 rounded-xl border-2 text-left transition-all",
-                      selectedType === type.id
-                        ? "border-foreground bg-muted"
-                        : "border-border hover:border-foreground/30 hover:bg-muted/50"
-                    )}
-                  >
-                    <span className="text-3xl mb-3 block">{type.icon}</span>
-                    <h3 className="font-heading font-semibold text-foreground mb-1">
-                      {type.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {type.description}
-                    </p>
-                  </button>
-                ))}
-              </div>
+              {eventTypes.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No event types found. Please contact an admin.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {eventTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => handleTypeSelect(type.id)}
+                      className={cn(
+                        "p-6 rounded-xl border-2 text-left transition-all",
+                        selectedType === type.id
+                          ? "border-foreground bg-muted"
+                          : "border-border hover:border-foreground/30 hover:bg-muted/50"
+                      )}
+                    >
+                      <span className="text-3xl mb-3 block">{type.icon}</span>
+                      <h3 className="font-heading font-semibold text-foreground mb-1">
+                        {type.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {type.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="flex justify-end pt-4">
                 <Button 
@@ -307,9 +396,18 @@ const NewEvent = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
-                <Button onClick={handleCreate}>
-                  Create Event
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                <Button onClick={handleCreate} disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      Create Event
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               </div>
             </motion.div>
