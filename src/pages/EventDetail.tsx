@@ -1,7 +1,8 @@
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MilestoneCard } from '@/components/milestones/MilestoneCard';
-import { mockEvents } from '@/data/mockData';
+import { useEvent } from '@/hooks/useEvents';
+import { useUpdateMilestone } from '@/hooks/useMilestones';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
@@ -10,14 +11,13 @@ import {
   FileText, 
   Sparkles,
   ChevronDown,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
-import type { MilestoneStatus } from '@/types/steady';
-import { useState } from 'react';
+import type { MilestoneStatus } from '@/types/database';
 
 function ProgressBar({ progress }: { progress: number }) {
   return (
@@ -34,8 +34,18 @@ function ProgressBar({ progress }: { progress: number }) {
 
 const EventDetail = () => {
   const { id } = useParams();
-  const event = mockEvents.find(e => e.id === id);
-  const [milestones, setMilestones] = useState(event?.milestones || []);
+  const { data: event, isLoading } = useEvent(id);
+  const updateMilestone = useUpdateMilestone();
+
+  if (isLoading) {
+    return (
+      <AppLayout title="Loading...">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (!event) {
     return (
@@ -48,24 +58,23 @@ const EventDetail = () => {
   }
 
   const handleStatusChange = (milestoneId: string, newStatus: MilestoneStatus) => {
-    setMilestones(prev => 
-      prev.map(m => 
-        m.id === milestoneId 
-          ? { ...m, status: newStatus, completedAt: newStatus === 'COMPLETED' ? new Date() : undefined }
-          : m
-      )
-    );
+    updateMilestone.mutate({
+      id: milestoneId,
+      status: newStatus,
+      completed_at: newStatus === 'COMPLETED' ? new Date().toISOString() : null,
+    });
   };
 
+  const milestones = event.milestones || [];
   const completedCount = milestones.filter(m => m.status === 'COMPLETED').length;
   const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
 
   const daysUntilEvent = Math.ceil(
-    (new Date(event.eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    (new Date(event.event_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
 
   return (
-    <AppLayout title={event.name} subtitle={event.eventType?.name}>
+    <AppLayout title={event.name} subtitle={event.event_type?.name}>
       <div className="max-w-5xl">
         {/* Event Header Card */}
         <motion.div
@@ -79,7 +88,7 @@ const EventDetail = () => {
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
-                  {format(new Date(event.eventDate), 'EEEE, MMMM d, yyyy')}
+                  {format(new Date(event.event_date), 'EEEE, MMMM d, yyyy')}
                 </span>
                 {event.venue && (
                   <span className="flex items-center gap-1.5">
@@ -87,17 +96,23 @@ const EventDetail = () => {
                     {event.venue}
                   </span>
                 )}
-                <span className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4" />
-                  {event.owner?.name}
-                </span>
+                {event.owner && (
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4" />
+                    {event.owner.name || event.owner.email}
+                  </span>
+                )}
               </div>
 
               {/* Days countdown */}
               <div className="flex items-center gap-4">
                 <div className="px-4 py-2 bg-muted rounded-lg">
-                  <span className="text-2xl font-heading font-bold text-foreground">{daysUntilEvent}</span>
-                  <span className="text-sm text-muted-foreground ml-1.5">days to go</span>
+                  <span className="text-2xl font-heading font-bold text-foreground">
+                    {daysUntilEvent > 0 ? daysUntilEvent : 0}
+                  </span>
+                  <span className="text-sm text-muted-foreground ml-1.5">
+                    {daysUntilEvent > 0 ? 'days to go' : 'days ago'}
+                  </span>
                 </div>
               </div>
 
@@ -171,7 +186,7 @@ const EventDetail = () => {
 
             <div className="space-y-3">
               {milestones
-                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
                 .map((milestone, index) => (
                   <MilestoneCard 
                     key={milestone.id} 

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Clock, AlertCircle, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Milestone, MilestoneStatus } from '@/types/steady';
+import type { Milestone, MilestoneStatus } from '@/types/database';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,7 +32,8 @@ const categoryColors: Record<string, string> = {
 };
 
 export function MilestoneCard({ milestone, index, onStatusChange }: MilestoneCardProps) {
-  const isOverdue = milestone.dueDate < new Date() && milestone.status !== 'COMPLETED' && milestone.status !== 'SKIPPED';
+  const dueDate = new Date(milestone.due_date);
+  const isOverdue = dueDate < new Date() && milestone.status !== 'COMPLETED' && milestone.status !== 'SKIPPED';
   const config = statusConfig[milestone.status];
 
   const handleComplete = () => {
@@ -65,7 +66,7 @@ export function MilestoneCard({ milestone, index, onStatusChange }: MilestoneCar
             <span className={cn("px-2 py-0.5 text-xs font-medium rounded", categoryColors[milestone.category])}>
               {milestone.category}
             </span>
-            {milestone.isAiGenerated && (
+            {milestone.is_ai_generated && (
               <span className="ai-indicator">
                 <Sparkles className="w-3 h-3 animate-sparkle" />
                 <span className="hidden sm:inline">AI</span>
@@ -92,12 +93,12 @@ export function MilestoneCard({ milestone, index, onStatusChange }: MilestoneCar
               isOverdue ? "text-status-overdue font-medium" : "text-muted-foreground"
             )}>
               {isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-              {isOverdue ? 'Overdue' : format(milestone.dueDate, 'MMM d')}
+              {isOverdue ? 'Overdue' : format(dueDate, 'MMM d')}
             </span>
 
             {milestone.assignee && (
               <span className="text-muted-foreground">
-                {milestone.assignee.name}
+                {milestone.assignee.name || milestone.assignee.email}
               </span>
             )}
           </div>

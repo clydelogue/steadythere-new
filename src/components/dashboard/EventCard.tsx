@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Event } from '@/types/steady';
+import type { Event } from '@/types/database';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -49,12 +49,23 @@ const statusColors: Record<string, string> = {
   PLANNING: 'bg-muted text-muted-foreground',
   ACTIVE: 'bg-status-on-track/10 text-status-on-track',
   COMPLETED: 'bg-status-completed/10 text-status-completed',
+  CANCELLED: 'bg-status-overdue/10 text-status-overdue',
+  ARCHIVED: 'bg-muted text-muted-foreground',
 };
 
 export function EventCard({ event, index }: EventCardProps) {
+  const milestones = event.milestones || [];
+  const completedCount = milestones.filter(m => m.status === 'COMPLETED').length;
+  const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
+
   const daysUntilEvent = Math.ceil(
-    (new Date(event.eventDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    (new Date(event.event_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );
+
+  const needsAttentionCount = milestones.filter(m => {
+    const isOverdue = new Date(m.due_date) < new Date() && m.status !== 'COMPLETED' && m.status !== 'SKIPPED';
+    return m.status === 'BLOCKED' || isOverdue;
+  }).length;
 
   return (
     <motion.div
@@ -86,7 +97,7 @@ export function EventCard({ event, index }: EventCardProps) {
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
-                {format(new Date(event.eventDate), 'MMM d, yyyy')}
+                {format(new Date(event.event_date), 'MMM d, yyyy')}
               </span>
               {event.venue && (
                 <span className="flex items-center gap-1.5">
@@ -97,17 +108,17 @@ export function EventCard({ event, index }: EventCardProps) {
             </div>
           </div>
 
-          <ProgressRing progress={event.progress || 0} />
+          <ProgressRing progress={progress} />
         </div>
 
         {/* Milestone summary */}
         <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm">
             <span className="text-status-completed font-medium">
-              {event.milestones?.filter(m => m.status === 'COMPLETED').length || 0} done
+              {completedCount} done
             </span>
             <span className="text-status-overdue font-medium">
-              {event.milestones?.filter(m => m.status === 'BLOCKED' || (m.dueDate < new Date() && m.status !== 'COMPLETED')).length || 0} needs attention
+              {needsAttentionCount} needs attention
             </span>
           </div>
           
@@ -115,7 +126,7 @@ export function EventCard({ event, index }: EventCardProps) {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {event.owner.name}
+                {event.owner.name || event.owner.email}
               </span>
             </div>
           )}
