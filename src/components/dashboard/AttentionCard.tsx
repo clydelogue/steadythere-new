@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { AlertCircle, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AttentionItem } from '@/types/steady';
+import type { AttentionItem } from '@/types/database';
 import { format } from 'date-fns';
 
 interface AttentionCardProps {
@@ -65,13 +65,18 @@ export function AttentionCard({ item, index }: AttentionCardProps) {
             {item.milestone.title}
           </h4>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Due {format(item.milestone.dueDate, 'MMM d, yyyy')}
+            Due {format(new Date(item.milestone.due_date), 'MMM d, yyyy')}
           </p>
         </div>
         {item.milestone.assignee && (
           <div className="flex-shrink-0">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-              {item.milestone.assignee.name.split(' ').map(n => n[0]).join('')}
+              {(item.milestone.assignee.name || item.milestone.assignee.email)
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2)}
             </div>
           </div>
         )}
