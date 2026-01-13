@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MilestoneCard } from '@/components/milestones/MilestoneCard';
+import { EditEventDialog } from '@/components/events/EditEventDialog';
 import { useEvent } from '@/hooks/useEvents';
 import { useUpdateMilestone } from '@/hooks/useMilestones';
 import { motion } from 'framer-motion';
@@ -12,7 +14,8 @@ import {
   Sparkles,
   ChevronDown,
   Plus,
-  Loader2
+  Loader2,
+  Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -36,6 +39,7 @@ const EventDetail = () => {
   const { id } = useParams();
   const { data: event, isLoading } = useEvent(id);
   const updateMilestone = useUpdateMilestone();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -131,13 +135,13 @@ const EventDetail = () => {
 
             {/* Actions */}
             <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Event
+              </Button>
               <Button className="ai-button" variant="outline">
                 <Sparkles className="w-4 h-4" />
                 Improve with AI
-              </Button>
-              <Button variant="outline" size="sm">
-                <FileText className="w-4 h-4 mr-2" />
-                Documents
               </Button>
             </div>
           </div>
@@ -233,6 +237,12 @@ const EventDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditEventDialog 
+        event={event} 
+        open={isEditDialogOpen} 
+        onOpenChange={setIsEditDialogOpen} 
+      />
     </AppLayout>
   );
 };
