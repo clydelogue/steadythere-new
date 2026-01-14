@@ -164,30 +164,36 @@ export type Database = {
       event_types: {
         Row: {
           created_at: string
+          current_version: number
           default_reminder_days: number[] | null
           description: string | null
           icon: string | null
           id: string
+          is_active: boolean
           name: string
           organization_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          current_version?: number
           default_reminder_days?: number[] | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_active?: boolean
           name: string
           organization_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          current_version?: number
           default_reminder_days?: number[] | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           organization_id?: string
           updated_at?: string
@@ -217,6 +223,7 @@ export type Database = {
           owner_id: string | null
           reminder_days: number[] | null
           status: Database["public"]["Enums"]["event_status"]
+          template_version_id: string | null
           updated_at: string
           venue: string | null
           virtual_link: string | null
@@ -235,6 +242,7 @@ export type Database = {
           owner_id?: string | null
           reminder_days?: number[] | null
           status?: Database["public"]["Enums"]["event_status"]
+          template_version_id?: string | null
           updated_at?: string
           venue?: string | null
           virtual_link?: string | null
@@ -253,6 +261,7 @@ export type Database = {
           owner_id?: string | null
           reminder_days?: number[] | null
           status?: Database["public"]["Enums"]["event_status"]
+          template_version_id?: string | null
           updated_at?: string
           venue?: string | null
           virtual_link?: string | null
@@ -277,6 +286,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -341,6 +357,7 @@ export type Database = {
           event_type_id: string
           id: string
           sort_order: number | null
+          template_version_id: string | null
           title: string
         }
         Insert: {
@@ -352,6 +369,7 @@ export type Database = {
           event_type_id: string
           id?: string
           sort_order?: number | null
+          template_version_id?: string | null
           title: string
         }
         Update: {
@@ -363,6 +381,7 @@ export type Database = {
           event_type_id?: string
           id?: string
           sort_order?: number | null
+          template_version_id?: string | null
           title?: string
         }
         Relationships: [
@@ -371,6 +390,13 @@ export type Database = {
             columns: ["event_type_id"]
             isOneToOne: false
             referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milestone_templates_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "template_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -653,6 +679,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      template_versions: {
+        Row: {
+          changelog: string | null
+          created_at: string
+          created_by: string | null
+          event_type_id: string
+          id: string
+          version: number
+        }
+        Insert: {
+          changelog?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type_id: string
+          id?: string
+          version: number
+        }
+        Update: {
+          changelog?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type_id?: string
+          id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_versions_event_type_id_fkey"
+            columns: ["event_type_id"]
+            isOneToOne: false
+            referencedRelation: "event_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

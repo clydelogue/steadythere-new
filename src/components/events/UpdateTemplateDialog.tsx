@@ -12,9 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTemplate } from '@/hooks/useTemplates';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useTemplate, useCreateTemplateVersion } from '@/hooks/useTemplates';
 import type { Event, Milestone, MilestoneTemplate } from '@/types/database';
 
 interface UpdateTemplateDialogProps {
@@ -24,7 +22,7 @@ interface UpdateTemplateDialogProps {
 }
 
 interface MilestoneDiff {
-  type: 'added' | 'removed';
+  type: 'added' | 'removed' | 'modified' | 'unchanged';
   eventMilestone?: Milestone;
   templateMilestone?: MilestoneTemplate;
   title: string;
@@ -32,7 +30,7 @@ interface MilestoneDiff {
 
 export function UpdateTemplateDialog({ event, open, onOpenChange }: UpdateTemplateDialogProps) {
   const { data: template, isLoading: templateLoading } = useTemplate(event.event_type_id || undefined);
-  const queryClient = useQueryClient();
+  const createVersion = useCreateTemplateVersion();
 
   const [selectedChanges, setSelectedChanges] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,46 +108,63 @@ export function UpdateTemplateDialog({ event, open, onOpenChange }: UpdateTempla
     setIsSubmitting(true);
 
     try {
-      // Process selected changes
-      for (const diff of diffs) {
-        if (!selectedChanges.has(diff.title)) continue;
+      // Start with existing template milestones
+      let updatedMilestones = (template.milestone_templates || []).map(tm => ({
+        title: tm.title,
+        description: tm.description || undefined,
+        category: tm.category,
+        days_before_event: tm.days_before_event,
+        estimated_hours: tm.estimated_hours || undefined,
+      }));
+
+      // Apply selected changes
+      diffs.forEach((diff) => {
+        if (!selectedChanges.has(diff.title)) return;
 
         if (diff.type === 'added' && diff.eventMilestone) {
-          // Add new milestone to template
+          // Add new milestone from event
           const em = diff.eventMilestone;
+          // Calculate days_before_event from the event date
           const eventDate = new Date(event.event_date);
           const dueDate = new Date(em.due_date);
           const daysBefore = Math.round((eventDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
-          const { error } = await supabase
-            .from('milestone_templates')
-            .insert({
-              event_type_id: template.id,
-              title: em.title,
-              description: em.description,
-              category: em.category,
-              days_before_event: Math.max(0, daysBefore),
-              estimated_hours: em.estimated_hours,
-              sort_order: (template.milestone_templates?.length || 0) + 1,
-            });
-
-          if (error) throw error;
-        } else if (diff.type === 'removed' && diff.templateMilestone) {
+          updatedMilestones.push({
+            title: em.title,
+            description: em.description || undefined,
+            category: em.category,
+            days_before_event: Math.max(0, daysBefore),
+            estimated_hours: em.estimated_hours || undefined,
+          });
+        } else if (diff.type === 'removed') {
           // Remove milestone from template
-          const { error } = await supabase
-            .from('milestone_templates')
-            .delete()
-            .eq('id', diff.templateMilestone.id);
-
-          if (error) throw error;
+          updatedMilestones = updatedMilestones.filter(
+            m => m.title.toLowerCase() !== diff.title.toLowerCase()
+          );
         }
-      }
+      });
 
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['template', template.id] });
-      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      // Sort by days_before_event descending (earliest tasks first)
+      updatedMilestones.sort((a, b) => b.days_before_event - a.days_before_event);
 
-      toast.success('Template updated successfully');
+      // Generate changelog
+      const changes: string[] = [];
+      diffs.forEach((diff) => {
+        if (!selectedChanges.has(diff.title)) return;
+        if (diff.type === 'added') {
+          changes.push(`Added "${diff.title}"`);
+        } else if (diff.type === 'removed') {
+          changes.push(`Removed "${diff.title}"`);
+        }
+      });
+
+      await createVersion.mutateAsync({
+        templateId: template.id,
+        changelog: changes.join(', '),
+        milestones: updatedMilestones,
+      });
+
+      toast.success(`Template updated to v${template.current_version + 1}`);
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to update template:', error);
@@ -193,6 +208,7 @@ export function UpdateTemplateDialog({ event, open, onOpenChange }: UpdateTempla
             ) : template ? (
               <>
                 Save changes from this event back to the "{template.name}" template.
+                This will create v{template.current_version + 1}.
               </>
             ) : (
               'Template not found.'
@@ -302,7 +318,7 @@ export function UpdateTemplateDialog({ event, open, onOpenChange }: UpdateTempla
               </>
             ) : (
               <>
-                Update Template
+                Save as v{(template?.current_version || 0) + 1}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </>
             )}
