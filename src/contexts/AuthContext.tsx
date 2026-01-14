@@ -95,13 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Set up auth listener
   useEffect(() => {
-    let mounted = true;
-    let initialized = false;
-
-    const initialize = async (session: Session | null) => {
-      if (!mounted || initialized) return;
-      initialized = true;
-      
+    // Get initial session synchronously-ish
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -116,14 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrgsLoaded(true);
       }
       setIsLoading(false);
-    };
+    });
 
-    // IMPORTANT: Set up listener BEFORE checking session
+    // Listen for auth changes AFTER initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
-        
-        // For initial session, let getSession handle it to avoid race
+        // Skip initial session event - we handle that above
         if (event === 'INITIAL_SESSION') return;
         
         setSession(session);
@@ -145,15 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      initialize(session);
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
