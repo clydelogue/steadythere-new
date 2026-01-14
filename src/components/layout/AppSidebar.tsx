@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronDown,
   Bot,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Events', href: '/events', icon: Calendar },
+  { name: 'Templates', href: '/templates', icon: FileText },
   { name: 'Documents', href: '/documents', icon: FolderOpen },
   { name: 'Team', href: '/team', icon: Users },
   { name: 'AI Test', href: '/ai-test', icon: Bot },
