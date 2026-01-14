@@ -12,6 +12,7 @@ import {
   Plus,
   LogOut,
   ChevronDown,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Events', href: '/events', icon: Calendar },
   { name: 'Documents', href: '/documents', icon: FolderOpen },
   { name: 'Team', href: '/team', icon: Users },
+  { name: 'AI Test', href: '/ai-test', icon: Bot },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

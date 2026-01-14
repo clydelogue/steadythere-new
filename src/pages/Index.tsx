@@ -51,9 +51,9 @@ const Dashboard = () => {
   const { profile } = useAuth();
   const { data: events = [], isLoading: eventsLoading } = useEvents();
   const { data: milestones = [], isLoading: milestonesLoading } = useAllMilestones();
-  const { data: attentionItems = [], isLoading: attentionLoading } = useAttentionItems();
+  const attentionItems = useAttentionItems({ milestones, events });
 
-  const isLoading = eventsLoading || milestonesLoading || attentionLoading;
+  const isLoading = eventsLoading || milestonesLoading;
 
   const activeEvents = events.filter(e => e.status === 'ACTIVE' || e.status === 'PLANNING').length;
   const completedMilestones = milestones.filter(m => m.status === 'COMPLETED').length;

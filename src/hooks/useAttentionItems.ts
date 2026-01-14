@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
-import { useAllMilestones } from './useMilestones';
-import { useEvents } from './useEvents';
 import { differenceInDays, startOfDay } from 'date-fns';
-import type { AttentionItem } from '@/types/database';
+import type { AttentionItem, Milestone, Event } from '@/types/database';
 
-export function useAttentionItems() {
-  const { data: milestones = [], isLoading: milestonesLoading } = useAllMilestones();
-  const { data: events = [], isLoading: eventsLoading } = useEvents();
+interface UseAttentionItemsParams {
+  milestones: Milestone[];
+  events: Event[];
+}
 
+export function useAttentionItems({ milestones, events }: UseAttentionItemsParams) {
   const attentionItems = useMemo(() => {
     const today = startOfDay(new Date());
     const items: AttentionItem[] = [];
@@ -50,8 +50,5 @@ export function useAttentionItems() {
     return items.sort((a, b) => priority[a.type] - priority[b.type]);
   }, [milestones, events]);
 
-  return {
-    data: attentionItems,
-    isLoading: milestonesLoading || eventsLoading,
-  };
+  return attentionItems;
 }

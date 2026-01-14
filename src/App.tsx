@@ -14,7 +14,16 @@ import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import AITest from "./pages/AITest";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute - prevents refetching on every mount
+      gcTime: 1000 * 60 * 5, // 5 minutes - keeps data in cache longer
+      refetchOnWindowFocus: false, // Don't refetch when tab regains focus
+      retry: 1, // Only retry failed requests once
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
