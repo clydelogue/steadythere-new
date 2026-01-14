@@ -12,6 +12,7 @@ import NewEvent from "./pages/NewEvent";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import AITest from "./pages/AITest";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,11 @@ const App = () => (
             <Route path="/events/:id" element={
               <ProtectedRoute>
                 <EventDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-test" element={
+              <ProtectedRoute>
+                <AITest />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
