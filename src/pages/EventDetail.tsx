@@ -3,19 +3,21 @@ import { useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MilestoneCard } from '@/components/milestones/MilestoneCard';
 import { EditEventDialog } from '@/components/events/EditEventDialog';
+import { UpdateTemplateDialog } from '@/components/events/UpdateTemplateDialog';
 import { useEvent } from '@/hooks/useEvents';
 import { useUpdateMilestone } from '@/hooks/useMilestones';
 import { motion } from 'framer-motion';
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  FileText, 
+import {
+  Calendar,
+  MapPin,
+  Users,
+  FileText,
   Sparkles,
   ChevronDown,
   Plus,
   Loader2,
-  Pencil
+  Pencil,
+  RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -40,6 +42,7 @@ const EventDetail = () => {
   const { data: event, isLoading } = useEvent(id);
   const updateMilestone = useUpdateMilestone();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdateTemplateOpen, setIsUpdateTemplateOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -139,10 +142,12 @@ const EventDetail = () => {
                 <Pencil className="w-4 h-4 mr-2" />
                 Edit Event
               </Button>
-              <Button className="ai-button" variant="outline">
-                <Sparkles className="w-4 h-4" />
-                Improve with AI
-              </Button>
+              {event.event_type_id && (
+                <Button variant="outline" onClick={() => setIsUpdateTemplateOpen(true)}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Update Template
+                </Button>
+              )}
             </div>
           </div>
         </motion.div>
@@ -238,10 +243,16 @@ const EventDetail = () => {
         </Tabs>
       </div>
 
-      <EditEventDialog 
-        event={event} 
-        open={isEditDialogOpen} 
-        onOpenChange={setIsEditDialogOpen} 
+      <EditEventDialog
+        event={event}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
+
+      <UpdateTemplateDialog
+        event={event}
+        open={isUpdateTemplateOpen}
+        onOpenChange={setIsUpdateTemplateOpen}
       />
     </AppLayout>
   );

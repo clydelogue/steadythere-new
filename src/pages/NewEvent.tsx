@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useEventTypes } from '@/hooks/useEventTypes';
+import { useTemplates, useTemplate } from '@/hooks/useTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Sparkles, Check, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Calendar, Sparkles, Check, ArrowRight, ArrowLeft, Loader2, FileText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,11 +35,15 @@ const sampleMilestones: EditableMilestone[] = [
 
 const NewEvent = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentOrg, user } = useAuth();
-  const { data: eventTypes = [], isLoading: eventTypesLoading } = useEventTypes();
-  
+  const { data: templates = [], isLoading: templatesLoading } = useTemplates();
+
+  // Support pre-selecting a template via ?template=:id
+  const preselectedTemplateId = searchParams.get('template');
+
   const [step, setStep] = useState<Step>('type');
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(preselectedTemplateId);
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [venue, setVenue] = useState('');
@@ -49,16 +53,40 @@ const NewEvent = () => {
   const [generatedMilestones, setGeneratedMilestones] = useState<EditableMilestone[]>([]);
   const [selectedMilestones, setSelectedMilestones] = useState<number[]>([]);
 
+  // Fetch selected template's milestones
+  const { data: selectedTemplate, isLoading: templateLoading } = useTemplate(selectedType || undefined);
+
+  // Skip to details if template is preselected
+  useEffect(() => {
+    if (preselectedTemplateId && selectedTemplate && step === 'type') {
+      setStep('details');
+    }
+  }, [preselectedTemplateId, selectedTemplate, step]);
+
   const handleTypeSelect = (typeId: string) => {
     setSelectedType(typeId);
   };
 
-  const handleGenerateMilestones = async () => {
+  const handleLoadMilestones = async () => {
+    if (!selectedTemplate?.milestone_templates) {
+      toast.error('No milestones found in this template');
+      return;
+    }
+
     setIsGenerating(true);
-    // Simulate AI generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setGeneratedMilestones(sampleMilestones);
-    setSelectedMilestones(sampleMilestones.map(m => m.id));
+
+    // Convert template milestones to editable format
+    const milestones: EditableMilestone[] = selectedTemplate.milestone_templates.map((m, index) => ({
+      id: index + 1,
+      title: m.title,
+      category: m.category,
+      daysBeforeEvent: m.days_before_event,
+      description: m.description || undefined,
+      estimatedHours: m.estimated_hours || undefined,
+    }));
+
+    setGeneratedMilestones(milestones);
+    setSelectedMilestones(milestones.map(m => m.id));
     setIsGenerating(false);
     setStep('milestones');
   };
@@ -72,6 +100,18 @@ const NewEvent = () => {
 
     setIsCreating(true);
     try {
+      // Get the template version ID if using a template
+      let templateVersionId = null;
+      if (selectedTemplate) {
+        const { data: version } = await supabase
+          .from('template_versions')
+          .select('id')
+          .eq('event_type_id', selectedTemplate.id)
+          .eq('version', selectedTemplate.current_version)
+          .single();
+        templateVersionId = version?.id || null;
+      }
+
       // Create the event
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -81,6 +121,7 @@ const NewEvent = () => {
           venue: venue || null,
           description: description || null,
           event_type_id: selectedType,
+          template_version_id: templateVersionId,
           organization_id: currentOrg.id,
           owner_id: user.id,
           status: 'PLANNING'
@@ -96,14 +137,14 @@ const NewEvent = () => {
         .map((m, index) => {
           const eventDateObj = parseISO(eventDate);
           const dueDate = subDays(eventDateObj, m.daysBeforeEvent);
-          
+
           return {
             title: m.title,
             category: m.category,
             due_date: format(dueDate, 'yyyy-MM-dd'),
             event_id: event.id,
             status: 'NOT_STARTED' as const,
-            is_ai_generated: true,
+            is_ai_generated: false, // From template, not AI generated
             sort_order: index
           };
         });
@@ -126,9 +167,7 @@ const NewEvent = () => {
     }
   };
 
-  const selectedEventType = eventTypes.find(t => t.id === selectedType);
-
-  if (eventTypesLoading) {
+  if (templatesLoading) {
     return (
       <AppLayout title="Create New Event" subtitle="Let's set up your event">
         <div className="flex items-center justify-center py-12">
@@ -163,7 +202,7 @@ const NewEvent = () => {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Step 1: Event Type */}
+          {/* Step 1: Template Selection */}
           {step === 'type' && (
             <motion.div
               key="type"
@@ -174,44 +213,57 @@ const NewEvent = () => {
             >
               <div className="text-center mb-8">
                 <h2 className="font-heading text-2xl font-semibold text-foreground mb-2">
-                  What type of event are you planning?
+                  Choose a template for your event
                 </h2>
                 <p className="text-muted-foreground">
-                  We'll customize milestones based on your event type
+                  Templates include pre-configured milestones to help you get started
                 </p>
               </div>
 
-              {eventTypes.length === 0 ? (
+              {templates.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No event types found. Please contact an admin.</p>
+                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">No templates yet. Create one to get started.</p>
+                  <Button asChild variant="outline">
+                    <Link to="/templates/new">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Template
+                    </Link>
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
-                  {eventTypes.map((type) => (
+                  {templates.map((template) => (
                     <button
-                      key={type.id}
-                      onClick={() => handleTypeSelect(type.id)}
+                      key={template.id}
+                      onClick={() => handleTypeSelect(template.id)}
                       className={cn(
                         "p-6 rounded-xl border-2 text-left transition-all",
-                        selectedType === type.id
+                        selectedType === template.id
                           ? "border-foreground bg-muted"
                           : "border-border hover:border-foreground/30 hover:bg-muted/50"
                       )}
                     >
-                      <span className="text-3xl mb-3 block">{type.icon}</span>
+                      <FileText className="w-8 h-8 mb-3 text-primary" />
                       <h3 className="font-heading font-semibold text-foreground mb-1">
-                        {type.name}
+                        {template.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {type.description}
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {template.description || `${template.milestone_count} milestones`}
                       </p>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        v{template.current_version} &middot; {template.milestone_count} milestones
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
 
-              <div className="flex justify-end pt-4">
-                <Button 
+              <div className="flex justify-between pt-4">
+                <Button variant="ghost" onClick={() => setStep('details')} disabled={!selectedType}>
+                  Skip template
+                </Button>
+                <Button
                   onClick={() => setStep('details')}
                   disabled={!selectedType}
                 >
@@ -232,12 +284,12 @@ const NewEvent = () => {
               className="space-y-6"
             >
               <div className="text-center mb-8">
-                <span className="text-4xl mb-3 block">{selectedEventType?.icon}</span>
+                <FileText className="w-12 h-12 mx-auto mb-3 text-primary" />
                 <h2 className="font-heading text-2xl font-semibold text-foreground mb-2">
-                  Tell us about your {selectedEventType?.name}
+                  Tell us about your {selectedTemplate?.name || 'event'}
                 </h2>
                 <p className="text-muted-foreground">
-                  These details help us generate better milestones
+                  We'll use the template milestones as a starting point
                 </p>
               </div>
 
@@ -246,7 +298,7 @@ const NewEvent = () => {
                   <Label htmlFor="name">Event Name</Label>
                   <Input
                     id="name"
-                    placeholder={`e.g., Annual ${selectedEventType?.name} 2026`}
+                    placeholder={`e.g., Annual ${selectedTemplate?.name || 'Event'} 2026`}
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
                     className="mt-1.5"
@@ -297,20 +349,19 @@ const NewEvent = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
                 </Button>
-                <Button 
-                  onClick={handleGenerateMilestones}
-                  disabled={!eventName || !eventDate || isGenerating}
-                  className="ai-button bg-ai text-white hover:bg-ai/90"
+                <Button
+                  onClick={handleLoadMilestones}
+                  disabled={!eventName || !eventDate || isGenerating || templateLoading}
                 >
-                  {isGenerating ? (
+                  {isGenerating || templateLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
+                      Loading...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Milestones
+                      Review Milestones
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}
                 </Button>
@@ -328,14 +379,15 @@ const NewEvent = () => {
               className="space-y-6"
             >
               <div className="text-center mb-8">
-                <div className="w-12 h-12 rounded-full bg-ai/10 flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-6 h-6 text-ai" />
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-6 h-6 text-primary" />
                 </div>
                 <h2 className="font-heading text-2xl font-semibold text-foreground mb-2">
-                  Here's your milestone plan
+                  Review your milestones
                 </h2>
                 <p className="text-muted-foreground">
-                  Drag to reorder, click to edit, or expand for details
+                  {selectedTemplate?.name ? `Based on "${selectedTemplate.name}" template. ` : ''}
+                  Customize as needed before creating.
                 </p>
               </div>
 

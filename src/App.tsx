@@ -9,6 +9,9 @@ import Index from "./pages/Index";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
+import Templates from "./pages/Templates";
+import TemplateDetail from "./pages/TemplateDetail";
+import NewTemplate from "./pages/NewTemplate";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -62,6 +65,21 @@ const App = () => (
             <Route path="/ai-test" element={
               <ProtectedRoute>
                 <AITest />
+              </ProtectedRoute>
+            } />
+            <Route path="/templates" element={
+              <ProtectedRoute>
+                <Templates />
+              </ProtectedRoute>
+            } />
+            <Route path="/templates/new" element={
+              <ProtectedRoute>
+                <NewTemplate />
+              </ProtectedRoute>
+            } />
+            <Route path="/templates/:id" element={
+              <ProtectedRoute>
+                <TemplateDetail />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
