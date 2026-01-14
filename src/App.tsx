@@ -12,6 +12,7 @@ import NewEvent from "./pages/NewEvent";
 import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
 import NewTemplate from "./pages/NewTemplate";
+import EditTemplate from "./pages/EditTemplate";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
@@ -80,6 +81,11 @@ const App = () => (
             <Route path="/templates/:id" element={
               <ProtectedRoute>
                 <TemplateDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/templates/:id/edit" element={
+              <ProtectedRoute>
+                <EditTemplate />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
