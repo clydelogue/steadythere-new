@@ -1,1 +1,4 @@
 project_id = "dunugeycfuytxvgndcwq"
+
+[functions.ai-generate]
+verify_jwt = false
