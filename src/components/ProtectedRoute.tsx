@@ -8,10 +8,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireOrg = true }: ProtectedRouteProps) {
-  const { user, isLoading, organizations } = useAuth();
+  const { user, isLoading, organizations, orgsLoaded } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  // Wait for both auth AND org data to load before making decisions
+  if (isLoading || !orgsLoaded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
