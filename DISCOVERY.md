@@ -1,87 +1,80 @@
 # Discovery Audit - Template Feature V1
 
-## Data Model Status
-- [x] Organization model exists: yes
-- [x] EventType model exists: yes (needs `current_version`, `is_active` fields)
-- [x] MilestoneTemplate model exists: yes (needs `template_version_id` field)
-- [x] Event model exists: yes (needs `template_version_id` field)
-- [x] Milestone model exists: yes (already has `completed_at` for future learning)
-- [x] LearnedPattern model exists: yes (can use for future learning)
-- [x] AgentAction model exists: yes (includes TEMPLATE_UPDATE action type)
-- [ ] Template versioning exists: no (need to add `template_versions` table)
+## Implementation Status: COMPLETE
 
-## AI Integration Status
-- [x] AI helper function exists: yes (path: `/src/lib/ai.ts`)
-- [x] Supabase Edge Function `ai-generate` exists: yes
-- [x] Existing AI usage examples: `/src/pages/AITest.tsx`, `/src/components/AITestComponent.tsx`
+### Data Model
+- [x] `event_types` extended with `current_version`, `is_active` fields
+- [x] `template_versions` table created for versioning
+- [x] `milestone_templates` extended with `template_version_id`
+- [x] `events` extended with `template_version_id`
+- [x] RLS policies added for `template_versions`
+- [x] Database indexes for performance
 
-## Existing Patterns (USE THESE)
-- UI Framework: Vite + React 18 + TypeScript
-- Component library: shadcn/ui (Radix primitives + Tailwind)
-- Routing: React Router v6 (`/src/pages/*.tsx`, routes in `/src/App.tsx`)
-- State management: TanStack React Query v5
-- Settings page pattern: none exists yet (will create)
-- List component pattern: `/src/pages/Events.tsx` (grid of cards)
-- Detail page pattern: `/src/pages/EventDetail.tsx`
-- Modal/dialog pattern: `/src/components/events/EditEventDialog.tsx`
-- Form pattern: `/src/pages/NewEvent.tsx`
-- Chat UI pattern: none (will create simple pattern)
-- AI integration pattern: `/src/lib/ai.ts` + `/src/components/AITestComponent.tsx`
-- Button styles: `/src/components/ui/button.tsx`
-- Card components: `/src/components/ui/card.tsx`
-- Loading states: `Loader2` from lucide-react with `animate-spin`
+### UI Pages
+- [x] `/templates` - Template list page
+- [x] `/templates/new` - Create template with AI generation
+- [x] `/templates/:id` - Template detail page
 
-## Key File Locations
-- Database schema: `/supabase/migrations/*.sql`
-- Database types (auto-generated): `/src/integrations/supabase/types.ts`
-- Database types (manual): `/src/types/database.ts`
-- API: Direct Supabase client calls (no API routes)
-- UI components: `/src/components/`
-- Pages/routes: `/src/pages/`, routes defined in `/src/App.tsx`
-- AI helper: `/src/lib/ai.ts`
-- Supabase client: `/src/integrations/supabase/client.ts`
-- Hooks: `/src/hooks/`
-- Auth context: `/src/contexts/AuthContext.tsx`
-- Sidebar navigation: `/src/components/layout/AppSidebar.tsx`
+### Features
+- [x] Single-shot AI milestone generation
+- [x] Manual milestone editing
+- [x] Event creation from template (copy milestones)
+- [x] Manual "Update Template" from event milestones
+- [x] Version tracking for templates
 
-## Architecture Decisions for V1
+### Tests
+- [x] Template hooks tests (`useTemplates.test.ts`)
+- [x] AI generation parsing tests (`ai.test.ts`)
+- [x] Template list UI tests (`Templates.test.tsx`)
+- [x] Event creation flow tests (`NewEvent.test.tsx`)
+- [x] Template update dialog tests (`UpdateTemplateDialog.test.ts`)
 
-### Data Operations
-- Use direct Supabase client calls (not API routes)
-- Follow existing hook patterns (React Query)
-- Example: see `useEvents.ts`, `useEventTypes.ts`
+## Files Created/Modified
 
-### Schema Changes
-- Add `template_versions` table for versioning
-- Add `current_version` and `is_active` to `event_types`
-- Add `template_version_id` to `milestone_templates` and `events`
-- Write SQL migrations (not Prisma)
+### New Files
+- `/supabase/migrations/20260114232100_template_versioning.sql` - Migration
+- `/src/hooks/useTemplates.ts` - Template data hooks
+- `/src/pages/Templates.tsx` - Template list page
+- `/src/pages/TemplateDetail.tsx` - Template detail page
+- `/src/pages/NewTemplate.tsx` - Create template page with AI
+- `/src/components/events/UpdateTemplateDialog.tsx` - Update template modal
+- `/src/test/test-utils.tsx` - Test utilities and mocks
+- Various test files
 
-### Testing
-- Framework: Vitest with jsdom
-- Setup: `/src/test/setup.ts`
-- Pattern: `/src/test/example.test.ts`
+### Modified Files
+- `/src/App.tsx` - Added template routes
+- `/src/components/layout/AppSidebar.tsx` - Added Templates nav item
+- `/src/pages/NewEvent.tsx` - Template selection for events
+- `/src/pages/EventDetail.tsx` - Update Template button
+- `/src/types/database.ts` - Extended type definitions
 
-## V1 Simplified Scope
+## Architecture
 
-### What We're Building
-1. Template list page (`/templates`)
-2. Template detail page (`/templates/:id`)
-3. Template creation with single-shot AI generation
-4. Event creation from template (copy milestones)
-5. Manual "Update template from event" button
+### Data Flow
+1. **Template Creation**: User describes event → AI generates milestones → User edits → Save creates EventType + TemplateVersion + MilestoneTemplates
+2. **Event Creation**: User selects template → Milestones copied from current version → Event references template_version_id
+3. **Template Update**: User reviews event changes → Selects additions/removals → New version created
 
-### What We're NOT Building (V2)
+### Key Patterns Used
+- Direct Supabase client calls (not API routes)
+- React Query for server state management
+- shadcn/ui components
+- Framer Motion for animations
+- Sonner for toast notifications
+
+## V1 Scope Summary
+
+### Included
+- Template CRUD operations
+- Single-shot AI milestone generation
+- Version tracking (data model)
+- Event creation from template
+- Manual template updates from events
+
+### Deferred to V2
 - Multi-turn chat refinement
 - AI adjustment during event creation
 - Automated post-event analysis
-- Version history UI
+- Version history UI (data is tracked)
 - System templates
 - Confidence scoring
-
-## Assumptions
-1. All org members can view/create/edit templates (no role restrictions for V1)
-2. Template names must be unique per organization
-3. Deleting a template soft-deletes (sets `is_active: false`)
-4. Events keep reference to template version even after template changes
-5. No concurrent editing protection for V1
