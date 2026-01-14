@@ -100,18 +100,6 @@ const NewEvent = () => {
 
     setIsCreating(true);
     try {
-      // Get the template version ID if using a template
-      let templateVersionId = null;
-      if (selectedTemplate) {
-        const { data: version } = await supabase
-          .from('template_versions')
-          .select('id')
-          .eq('event_type_id', selectedTemplate.id)
-          .eq('version', selectedTemplate.current_version)
-          .single();
-        templateVersionId = version?.id || null;
-      }
-
       // Create the event
       const { data: event, error: eventError } = await supabase
         .from('events')
@@ -121,7 +109,6 @@ const NewEvent = () => {
           venue: venue || null,
           description: description || null,
           event_type_id: selectedType,
-          template_version_id: templateVersionId,
           organization_id: currentOrg.id,
           owner_id: user.id,
           status: 'PLANNING'
@@ -252,7 +239,7 @@ const NewEvent = () => {
                         {template.description || `${template.milestone_count} milestones`}
                       </p>
                       <div className="mt-2 text-xs text-muted-foreground">
-                        v{template.current_version} &middot; {template.milestone_count} milestones
+                        {template.milestone_count} milestones
                       </div>
                     </button>
                   ))}

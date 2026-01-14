@@ -44,9 +44,6 @@ const Templates = () => {
                       </div>
                       <div>
                         <CardTitle className="text-base">{template.name}</CardTitle>
-                        <Badge variant="secondary" className="mt-1 text-xs">
-                          v{template.current_version}
-                        </Badge>
                       </div>
                     </div>
                   </div>
