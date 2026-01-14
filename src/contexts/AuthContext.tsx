@@ -96,40 +96,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Set up auth listener
   useEffect(() => {
     let mounted = true;
+    let initialSessionChecked = false;
 
-    // IMPORTANT: Set up listener BEFORE checking session
+    // Check initial session FIRST
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
+      initialSessionChecked = true;
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await loadUserData(session.user.id);
+      } else {
+        setOrgsLoaded(true);
+      }
+      setIsLoading(false);
+    });
+
+    // Set up listener for SUBSEQUENT auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+        
+        // Skip the initial INITIAL_SESSION event - we handle it above
+        if (event === 'INITIAL_SESSION') return;
         
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // Reset orgsLoaded when auth state changes (new login)
+          setOrgsLoaded(false);
           await loadUserData(session.user.id);
         } else {
           setProfile(null);
           setOrganizations([]);
           setCurrentOrgId(null);
-          setOrgsLoaded(true); // No user, so orgs are "loaded" (empty)
+          setOrgsLoaded(true);
         }
         setIsLoading(false);
       }
     );
-
-    // Check initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await loadUserData(session.user.id);
-      } else {
-        setOrgsLoaded(true); // No user, so orgs are "loaded" (empty)
-      }
-      setIsLoading(false);
-    });
 
     return () => {
       mounted = false;
