@@ -14,18 +14,13 @@ import { cn } from '@/lib/utils';
 import { format, addDays, subDays, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
+import { EditableMilestoneList } from '@/components/events/EditableMilestoneList';
+import type { EditableMilestone } from '@/components/events/EditableMilestoneItem';
 
 type MilestoneCategory = Database['public']['Enums']['milestone_category'];
 type Step = 'type' | 'details' | 'milestones';
 
-interface GeneratedMilestone {
-  id: number;
-  title: string;
-  category: MilestoneCategory;
-  daysBeforeEvent: number;
-}
-
-const sampleMilestones: GeneratedMilestone[] = [
+const sampleMilestones: EditableMilestone[] = [
   { id: 1, title: 'Book venue and sign contract', category: 'VENUE', daysBeforeEvent: 90 },
   { id: 2, title: 'Finalize catering menu and confirm headcount', category: 'CATERING', daysBeforeEvent: 60 },
   { id: 3, title: 'Design and send save-the-date invitations', category: 'MARKETING', daysBeforeEvent: 75 },
@@ -51,7 +46,7 @@ const NewEvent = () => {
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [generatedMilestones, setGeneratedMilestones] = useState<GeneratedMilestone[]>([]);
+  const [generatedMilestones, setGeneratedMilestones] = useState<EditableMilestone[]>([]);
   const [selectedMilestones, setSelectedMilestones] = useState<number[]>([]);
 
   const handleTypeSelect = (typeId: string) => {
@@ -68,11 +63,6 @@ const NewEvent = () => {
     setStep('milestones');
   };
 
-  const toggleMilestone = (id: number) => {
-    setSelectedMilestones(prev => 
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-    );
-  };
 
   const handleCreate = async () => {
     if (!currentOrg || !user) {
@@ -345,51 +335,16 @@ const NewEvent = () => {
                   Here's your milestone plan
                 </h2>
                 <p className="text-muted-foreground">
-                  Review and customize these AI-generated milestones
+                  Drag to reorder, click to edit, or expand for details
                 </p>
               </div>
 
-              <div className="bg-card rounded-xl border border-border divide-y divide-border">
-                {generatedMilestones.map((milestone, index) => (
-                  <motion.div
-                    key={milestone.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={cn(
-                      "p-4 flex items-start gap-3 transition-colors",
-                      !selectedMilestones.includes(milestone.id) && "opacity-50"
-                    )}
-                  >
-                    <button
-                      onClick={() => toggleMilestone(milestone.id)}
-                      className={cn(
-                        "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                        selectedMilestones.includes(milestone.id)
-                          ? "bg-foreground border-foreground text-background"
-                          : "border-muted-foreground"
-                      )}
-                    >
-                      {selectedMilestones.includes(milestone.id) && (
-                        <Check className="w-3 h-3" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground">{milestone.title}</p>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        {milestone.daysBeforeEvent} days before event
-                      </p>
-                    </div>
-                    <span className="ai-indicator flex-shrink-0">
-                      <Sparkles className="w-3 h-3" />
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-
-              <p className="text-sm text-center text-muted-foreground">
-                {selectedMilestones.length} of {generatedMilestones.length} milestones selected
-              </p>
+              <EditableMilestoneList
+                milestones={generatedMilestones}
+                selectedIds={selectedMilestones}
+                onMilestonesChange={setGeneratedMilestones}
+                onSelectedChange={setSelectedMilestones}
+              />
 
               <div className="flex justify-between pt-4">
                 <Button variant="ghost" onClick={() => setStep('details')}>
