@@ -72,17 +72,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Load user data after user is set
+  const loadUserData = async (userId: string) => {
+    const [profileData, orgsData] = await Promise.all([
+      fetchProfile(userId),
+      fetchOrganizations(userId)
+    ]);
+    setProfile(profileData);
+    setOrganizations(orgsData);
+    
+    // Set current org from localStorage or first org
+    const savedOrgId = localStorage.getItem('steady_current_org');
+    if (savedOrgId && orgsData.some(o => o.organization_id === savedOrgId)) {
+      setCurrentOrgId(savedOrgId);
+    } else if (orgsData.length > 0) {
+      setCurrentOrgId(orgsData[0].organization_id);
+    }
+  };
+
   // Set up auth listener
   useEffect(() => {
+    let mounted = true;
+
     // IMPORTANT: Set up listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid potential deadlocks
-          setTimeout(() => refreshProfile(), 0);
+          await loadUserData(session.user.id);
         } else {
           setProfile(null);
           setOrganizations([]);
@@ -93,16 +114,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        refreshProfile();
+        await loadUserData(session.user.id);
       }
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
