@@ -125,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         await loadUserData(session.user.id);
+      } else {
+        setOrgsLoaded(true); // No user, so orgs are "loaded" (empty)
       }
       setIsLoading(false);
     });
