@@ -105,7 +105,7 @@ const TemplateDetail = () => {
               Back
             </Link>
           </Button>
-          <Badge variant="secondary">v{template.current_version}</Badge>
+          <Badge variant="secondary">{milestones.length} milestones</Badge>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>

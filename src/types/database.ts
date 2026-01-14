@@ -18,10 +18,10 @@ export interface Organization {
   name: string;
   slug: string;
   timezone: string;
-  default_reminder_days: number[];
-  digest_enabled: boolean;
-  digest_day: number;
-  digest_time: string;
+  default_reminder_days: number[] | null;
+  digest_enabled: boolean | null;
+  digest_day: number | null;
+  digest_time: string | null;
   inbound_email_address: string | null;
   created_at: string;
   updated_at: string;
@@ -55,57 +55,37 @@ export interface EventType {
   organization_id: string;
   name: string;
   description: string | null;
-  icon: string;
+  icon: string | null;
   default_reminder_days: number[] | null;
-  current_version: number;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
   // Joined data
-  versions?: TemplateVersion[];
   milestone_templates?: MilestoneTemplate[];
-}
-
-export interface TemplateVersion {
-  id: string;
-  event_type_id: string;
-  version: number;
-  changelog: string | null;
-  created_by: string | null;
-  created_at: string;
-  // Joined data
-  event_type?: EventType;
-  milestone_templates?: MilestoneTemplate[];
-  creator?: Profile;
 }
 
 export interface MilestoneTemplate {
   id: string;
   event_type_id: string;
-  template_version_id: string | null;
   title: string;
   description: string | null;
   category: MilestoneCategory;
   days_before_event: number;
   estimated_hours: number | null;
-  sort_order: number;
+  sort_order: number | null;
   created_at: string;
-  // Joined data
-  template_version?: TemplateVersion;
 }
 
 export interface Event {
   id: string;
   organization_id: string;
   event_type_id: string | null;
-  template_version_id: string | null;
   name: string;
   description: string | null;
   event_date: string;
   event_end_date: string | null;
   venue: string | null;
   address: string | null;
-  is_virtual: boolean;
+  is_virtual: boolean | null;
   virtual_link: string | null;
   reminder_days: number[] | null;
   status: EventStatus;
@@ -114,7 +94,6 @@ export interface Event {
   updated_at: string;
   // Joined data
   event_type?: EventType;
-  template_version?: TemplateVersion;
   owner?: Profile;
   milestones?: Milestone[];
 }
@@ -132,9 +111,9 @@ export interface Milestone {
   actual_hours: number | null;
   assignee_id: string | null;
   from_template_id: string | null;
-  is_ai_generated: boolean;
-  was_modified: boolean;
-  sort_order: number;
+  is_ai_generated: boolean | null;
+  was_modified: boolean | null;
+  sort_order: number | null;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -198,9 +177,9 @@ export interface LearnedPattern {
   description: string;
   recommendation: string | null;
   source_event_ids: string[] | null;
-  confidence: number;
-  is_active: boolean;
-  applied_count: number;
+  confidence: number | null;
+  is_active: boolean | null;
+  applied_count: number | null;
   created_at: string;
   updated_at: string;
 }
