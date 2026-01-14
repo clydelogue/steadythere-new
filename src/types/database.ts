@@ -57,15 +57,32 @@ export interface EventType {
   description: string | null;
   icon: string | null;
   default_reminder_days: number[] | null;
+  current_version: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   // Joined data
+  versions?: TemplateVersion[];
   milestone_templates?: MilestoneTemplate[];
+}
+
+export interface TemplateVersion {
+  id: string;
+  event_type_id: string;
+  version: number;
+  changelog: string | null;
+  created_by: string | null;
+  created_at: string;
+  // Joined data
+  event_type?: EventType;
+  milestone_templates?: MilestoneTemplate[];
+  creator?: Profile;
 }
 
 export interface MilestoneTemplate {
   id: string;
   event_type_id: string;
+  template_version_id: string | null;
   title: string;
   description: string | null;
   category: MilestoneCategory;
@@ -73,12 +90,15 @@ export interface MilestoneTemplate {
   estimated_hours: number | null;
   sort_order: number | null;
   created_at: string;
+  // Joined data
+  template_version?: TemplateVersion;
 }
 
 export interface Event {
   id: string;
   organization_id: string;
   event_type_id: string | null;
+  template_version_id: string | null;
   name: string;
   description: string | null;
   event_date: string;
@@ -94,6 +114,7 @@ export interface Event {
   updated_at: string;
   // Joined data
   event_type?: EventType;
+  template_version?: TemplateVersion;
   owner?: Profile;
   milestones?: Milestone[];
 }
