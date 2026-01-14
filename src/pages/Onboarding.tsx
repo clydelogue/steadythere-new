@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Building, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
+import { Sparkles, Building, ArrowRight, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,11 +10,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Onboarding = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, organizations, orgsLoaded, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<'org' | 'complete'>('org');
   const [orgName, setOrgName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // If user already has an org, redirect to dashboard immediately
+  if (orgsLoaded && organizations.length > 0) {
+    return <Navigate to="/" replace />;
+  }
 
   const generateSlug = (name: string) => {
     return name
