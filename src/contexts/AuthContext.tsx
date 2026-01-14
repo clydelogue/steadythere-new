@@ -93,13 +93,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check initial session FIRST
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
-      
+
       initialSessionChecked = true;
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        await loadUserData(session.user.id);
+        try {
+          await loadUserData(session.user.id);
+        } catch (error) {
+          console.error('Failed to load user data:', error);
+          setOrgsLoaded(true);
+        }
       } else {
         setOrgsLoaded(true);
       }
@@ -120,7 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Reset orgsLoaded when auth state changes (new login)
           setOrgsLoaded(false);
-          await loadUserData(session.user.id);
+          try {
+            await loadUserData(session.user.id);
+          } catch (error) {
+            console.error('Failed to load user data:', error);
+            setOrgsLoaded(true);
+          }
         } else {
           setProfile(null);
           setOrganizations([]);
