@@ -11,7 +11,6 @@ interface AuthContextType {
   currentOrgMember: OrganizationMember | null;
   organizations: OrganizationMember[];
   isLoading: boolean;
-  orgsLoaded: boolean; // New flag to track if orgs have been fetched
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -28,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [organizations, setOrganizations] = useState<OrganizationMember[]>([]);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [orgsLoaded, setOrgsLoaded] = useState(false);
 
   const currentOrgMember = organizations.find(om => om.organization_id === currentOrgId) || organizations[0] || null;
   const currentOrg = currentOrgMember?.organization || null;
@@ -55,26 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (data || []) as OrganizationMember[];
   };
 
-  // Refresh profile and orgs
-  const refreshProfile = async () => {
-    if (!user) return;
-    const [profileData, orgsData] = await Promise.all([
-      fetchProfile(user.id),
-      fetchOrganizations(user.id)
-    ]);
-    setProfile(profileData);
-    setOrganizations(orgsData);
-    
-    // Set current org from localStorage or first org
-    const savedOrgId = localStorage.getItem('steady_current_org');
-    if (savedOrgId && orgsData.some(o => o.organization_id === savedOrgId)) {
-      setCurrentOrgId(savedOrgId);
-    } else if (orgsData.length > 0) {
-      setCurrentOrgId(orgsData[0].organization_id);
-    }
-  };
-
-  // Load user data after user is set
+  // Load user data
   const loadUserData = async (userId: string) => {
     const [profileData, orgsData] = await Promise.all([
       fetchProfile(userId),
@@ -82,7 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
     setProfile(profileData);
     setOrganizations(orgsData);
-    setOrgsLoaded(true);
     
     // Set current org from localStorage or first org
     const savedOrgId = localStorage.getItem('steady_current_org');
@@ -91,50 +69,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else if (orgsData.length > 0) {
       setCurrentOrgId(orgsData[0].organization_id);
     }
+    
+    return orgsData;
+  };
+
+  // Refresh profile and orgs (public method)
+  const refreshProfile = async () => {
+    if (!user) return;
+    await loadUserData(user.id);
   };
 
   // Set up auth listener
   useEffect(() => {
-    // Get initial session synchronously-ish
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        try {
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
           await loadUserData(session.user.id);
-        } catch (error) {
-          console.error('Error loading user data:', error);
-          setOrgsLoaded(true);
         }
-      } else {
-        setOrgsLoaded(true);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
 
-    // Listen for auth changes AFTER initial load
+    initAuth();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Skip initial session event - we handle that above
+        // Ignore initial session - we handle that above
         if (event === 'INITIAL_SESSION') return;
         
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          try {
-            await loadUserData(session.user.id);
-          } catch (error) {
-            console.error('Error loading user data:', error);
-          }
+          await loadUserData(session.user.id);
         } else {
           setProfile(null);
           setOrganizations([]);
           setCurrentOrgId(null);
-          setOrgsLoaded(true);
         }
-        setIsLoading(false);
       }
     );
 
@@ -178,7 +159,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentOrgMember,
         organizations,
         isLoading,
-        orgsLoaded,
         signIn,
         signUp,
         signOut,
