@@ -55,17 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (data || []) as OrganizationMember[];
   };
 
-  // Refresh profile and orgs
-  const refreshProfile = async () => {
-    if (!user) return;
-    const [profileData, orgsData] = await Promise.all([
-      fetchProfile(user.id),
-      fetchOrganizations(user.id)
-    ]);
-    setProfile(profileData);
-    setOrganizations(orgsData);
-    
-    // Set current org from localStorage or first org
+  // Set current org from localStorage or fall back to first org
+  const selectCurrentOrg = (orgsData: OrganizationMember[]) => {
     const savedOrgId = localStorage.getItem('steady_current_org');
     if (savedOrgId && orgsData.some(o => o.organization_id === savedOrgId)) {
       setCurrentOrgId(savedOrgId);
@@ -74,23 +65,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Load user data after user is set
-  const loadUserData = async (userId: string) => {
+  // Load user data (profile and organizations)
+  const loadUserData = async (userId: string, markOrgsLoaded = true) => {
     const [profileData, orgsData] = await Promise.all([
       fetchProfile(userId),
       fetchOrganizations(userId)
     ]);
     setProfile(profileData);
     setOrganizations(orgsData);
-    setOrgsLoaded(true);
-    
-    // Set current org from localStorage or first org
-    const savedOrgId = localStorage.getItem('steady_current_org');
-    if (savedOrgId && orgsData.some(o => o.organization_id === savedOrgId)) {
-      setCurrentOrgId(savedOrgId);
-    } else if (orgsData.length > 0) {
-      setCurrentOrgId(orgsData[0].organization_id);
+    selectCurrentOrg(orgsData);
+    if (markOrgsLoaded) {
+      setOrgsLoaded(true);
     }
+  };
+
+  // Refresh profile and orgs (public API for components to trigger refresh)
+  const refreshProfile = async () => {
+    if (!user) return;
+    await loadUserData(user.id, false);
   };
 
   // Set up auth listener
