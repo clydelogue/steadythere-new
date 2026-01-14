@@ -96,39 +96,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Set up auth listener
   useEffect(() => {
     let mounted = true;
+    let initialized = false;
+
+    const initialize = async (session: Session | null) => {
+      if (!mounted || initialized) return;
+      initialized = true;
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        try {
+          await loadUserData(session.user.id);
+        } catch (error) {
+          console.error('Error loading user data:', error);
+          setOrgsLoaded(true);
+        }
+      } else {
+        setOrgsLoaded(true);
+      }
+      setIsLoading(false);
+    };
 
     // IMPORTANT: Set up listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
+        // For initial session, let getSession handle it to avoid race
+        if (event === 'INITIAL_SESSION') return;
+        
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await loadUserData(session.user.id);
+          try {
+            await loadUserData(session.user.id);
+          } catch (error) {
+            console.error('Error loading user data:', error);
+          }
         } else {
           setProfile(null);
           setOrganizations([]);
           setCurrentOrgId(null);
-          setOrgsLoaded(true); // No user, so orgs are "loaded" (empty)
+          setOrgsLoaded(true);
         }
         setIsLoading(false);
       }
     );
 
     // Check initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await loadUserData(session.user.id);
-      } else {
-        setOrgsLoaded(true); // No user, so orgs are "loaded" (empty)
-      }
-      setIsLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      initialize(session);
     });
 
     return () => {
