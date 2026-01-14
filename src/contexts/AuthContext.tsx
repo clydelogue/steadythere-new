@@ -11,6 +11,7 @@ interface AuthContextType {
   currentOrgMember: OrganizationMember | null;
   organizations: OrganizationMember[];
   isLoading: boolean;
+  orgsLoaded: boolean; // New flag to track if orgs have been fetched
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [organizations, setOrganizations] = useState<OrganizationMember[]>([]);
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [orgsLoaded, setOrgsLoaded] = useState(false);
 
   const currentOrgMember = organizations.find(om => om.organization_id === currentOrgId) || organizations[0] || null;
   const currentOrg = currentOrgMember?.organization || null;
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
     setProfile(profileData);
     setOrganizations(orgsData);
+    setOrgsLoaded(true);
     
     // Set current org from localStorage or first org
     const savedOrgId = localStorage.getItem('steady_current_org');
@@ -108,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setOrganizations([]);
           setCurrentOrgId(null);
+          setOrgsLoaded(true); // No user, so orgs are "loaded" (empty)
         }
         setIsLoading(false);
       }
@@ -168,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentOrgMember,
         organizations,
         isLoading,
+        orgsLoaded,
         signIn,
         signUp,
         signOut,
