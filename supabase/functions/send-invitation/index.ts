@@ -47,15 +47,14 @@ serve(async (req) => {
 
     // Initialize Supabase clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use service role client for all operations (we validate auth manually)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user
+    // Verify user token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       return new Response(
@@ -93,7 +92,7 @@ serve(async (req) => {
     }
 
     // Verify user has permission to invite to this organization
-    const { data: membership, error: memberError } = await supabase
+    const { data: membership, error: memberError } = await supabaseAdmin
       .from('organization_members')
       .select('role')
       .eq('organization_id', organizationId)
@@ -116,7 +115,7 @@ serve(async (req) => {
     }
 
     // Get organization details
-    const { data: org, error: orgError } = await supabase
+    const { data: org, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('name')
       .eq('id', organizationId)
@@ -132,7 +131,7 @@ serve(async (req) => {
     // Get event details if eventId provided
     let eventName: string | null = null;
     if (eventId) {
-      const { data: event } = await supabase
+      const { data: event } = await supabaseAdmin
         .from('events')
         .select('name')
         .eq('id', eventId)
@@ -141,7 +140,7 @@ serve(async (req) => {
     }
 
     // Get inviter's profile
-    const { data: inviterProfile } = await supabase
+    const { data: inviterProfile } = await supabaseAdmin
       .from('profiles')
       .select('name, email')
       .eq('id', user.id)
@@ -175,7 +174,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (existingProfile) {
-          const { data: existingMember } = await supabase
+          const { data: existingMember } = await supabaseAdmin
             .from('organization_members')
             .select('id')
             .eq('organization_id', organizationId)
@@ -189,7 +188,7 @@ serve(async (req) => {
         }
 
         // Check for existing pending invitation
-        const { data: existingInvitation } = await supabase
+        const { data: existingInvitation } = await supabaseAdmin
           .from('invitations')
           .select('id')
           .eq('organization_id', organizationId)
