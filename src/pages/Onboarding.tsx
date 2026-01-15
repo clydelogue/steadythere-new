@@ -45,13 +45,13 @@ const Onboarding = () => {
 
       if (orgError) throw orgError;
 
-      // Add user as owner
+      // Add user as org admin
       const { error: memberError } = await supabase
         .from('organization_members')
         .insert({
           organization_id: org.id,
           user_id: user.id,
-          role: 'owner'
+          role: 'org_admin'
         });
 
       if (memberError) throw memberError;

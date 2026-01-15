@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserManagement, OrgMember } from '@/hooks/useUserManagement';
+import { useInvitations } from '@/hooks/useInvitations';
+import { InviteTeamMemberDialog } from '@/components/InviteTeamMemberDialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -36,11 +36,17 @@ import {
   Users,
   UserPlus,
   Building2,
-  Shield,
-  User,
+  Calendar,
+  Store,
+  Handshake,
+  Heart,
   MoreHorizontal,
   UserMinus,
   RefreshCw,
+  Mail,
+  Clock,
+  X,
+  Send,
 } from 'lucide-react';
 import type { OrgRole } from '@/types/database';
 import {
@@ -49,12 +55,16 @@ import {
   canManageOrg,
   getAssignableRoles,
   getAllRoles,
+  canInviteTeam,
 } from '@/lib/permissions';
+import { formatDistanceToNow } from 'date-fns';
 
 const roleIcons: Record<OrgRole, React.ElementType> = {
-  owner: Building2,
-  admin: Shield,
-  member: User,
+  org_admin: Building2,
+  event_manager: Calendar,
+  vendor: Store,
+  partner: Handshake,
+  volunteer: Heart,
 };
 
 const UserManagement = () => {
@@ -68,21 +78,27 @@ const UserManagement = () => {
     isUpdatingRole,
     removeMember,
     isRemovingMember,
-    inviteMember,
-    isInvitingMember,
-    refetch,
   } = useUserManagement();
 
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<OrgRole>('member');
+  const {
+    pendingInvitations,
+    isLoading: invitationsLoading,
+    cancelInvitation,
+    isCancellingInvitation,
+    resendInvitation,
+    isResendingInvitation,
+  } = useInvitations();
+
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<OrgMember | null>(null);
   const [memberToChangeRole, setMemberToChangeRole] = useState<OrgMember | null>(null);
-  const [newRoleForMember, setNewRoleForMember] = useState<OrgRole>('member');
+  const [newRoleForMember, setNewRoleForMember] = useState<OrgRole>('volunteer');
+  const [invitationToCancel, setInvitationToCancel] = useState<string | null>(null);
 
-  const userRole = currentOrgMember?.role;
+  const userRole = currentOrgMember?.role as OrgRole | undefined;
   const userCanManageTeam = canManageTeam(userRole);
   const userCanManageOrg = canManageOrg(userRole);
+  const userCanInvite = canInviteTeam(userRole);
   const assignableRoles = userRole ? getAssignableRoles(userRole) : [];
 
   const getInitials = (name: string | null, email: string) => {
@@ -90,27 +106,6 @@ const UserManagement = () => {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     }
     return email.slice(0, 2).toUpperCase();
-  };
-
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
-
-    try {
-      await inviteMember({ email: inviteEmail, role: inviteRole });
-      toast({
-        title: 'Member added',
-        description: `${inviteEmail} has been added as ${ROLE_CONFIG[inviteRole].label}.`,
-      });
-      setInviteEmail('');
-      setInviteRole('member');
-      setIsInviteDialogOpen(false);
-    } catch (error: any) {
-      toast({
-        title: 'Error adding member',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
   };
 
   const handleRemoveMember = async () => {
@@ -151,10 +146,45 @@ const UserManagement = () => {
     }
   };
 
+  const handleCancelInvitation = async () => {
+    if (!invitationToCancel) return;
+
+    try {
+      await cancelInvitation(invitationToCancel);
+      toast({
+        title: 'Invitation cancelled',
+        description: 'The invitation has been cancelled.',
+      });
+      setInvitationToCancel(null);
+    } catch (error: any) {
+      toast({
+        title: 'Error cancelling invitation',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleResendInvitation = async (invitationId: string) => {
+    try {
+      await resendInvitation(invitationId);
+      toast({
+        title: 'Invitation resent',
+        description: 'A new invitation email has been sent.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error resending invitation',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const renderMemberCard = (member: OrgMember) => {
-    const RoleIcon = roleIcons[member.role];
+    const RoleIcon = roleIcons[member.role as OrgRole] || Users;
     const isCurrentUser = member.user_id === user?.id;
-    const canModify = userCanManageTeam && !isCurrentUser && assignableRoles.includes(member.role);
+    const canModify = userCanManageTeam && !isCurrentUser && assignableRoles.includes(member.role as OrgRole);
 
     return (
       <div
@@ -179,10 +209,10 @@ const UserManagement = () => {
         <div className="flex items-center gap-2">
           <Badge
             variant="secondary"
-            className={`flex items-center gap-1.5 ${ROLE_CONFIG[member.role].color}`}
+            className={`flex items-center gap-1.5 ${ROLE_CONFIG[member.role as OrgRole]?.color || ''}`}
           >
             <RoleIcon className="w-3 h-3" />
-            {ROLE_CONFIG[member.role].label}
+            {ROLE_CONFIG[member.role as OrgRole]?.label || member.role}
           </Badge>
           {canModify && (
             <DropdownMenu>
@@ -195,7 +225,7 @@ const UserManagement = () => {
                 <DropdownMenuItem
                   onClick={() => {
                     setMemberToChangeRole(member);
-                    setNewRoleForMember(member.role);
+                    setNewRoleForMember(member.role as OrgRole);
                   }}
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -238,70 +268,101 @@ const UserManagement = () => {
               Manage team members and their roles in {currentOrg.name}
             </p>
           </div>
-          {userCanManageTeam && (
-            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add Member
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Team Member</DialogTitle>
-                  <DialogDescription>
-                    Add someone to your organization. They must have an existing account.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Email Address</label>
-                    <Input
-                      type="email"
-                      placeholder="colleague@example.com"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Role</label>
-                    <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as OrgRole)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {assignableRoles.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            <div className="flex items-center gap-2">
-                              {ROLE_CONFIG[role].label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {ROLE_CONFIG[inviteRole].description}
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleInvite} disabled={isInvitingMember || !inviteEmail.trim()}>
-                    {isInvitingMember && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Add Member
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+          {userCanInvite && (
+            <Button onClick={() => setIsInviteDialogOpen(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Invite Team Member
+            </Button>
           )}
         </div>
 
+        {/* Pending Invitations */}
+        {userCanInvite && pendingInvitations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <Mail className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <CardTitle>Pending Invitations</CardTitle>
+                  <CardDescription>
+                    {pendingInvitations.length} invitation{pendingInvitations.length !== 1 ? 's' : ''} awaiting response
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {pendingInvitations.map((invitation) => {
+                  const RoleIcon = roleIcons[invitation.role as OrgRole] || Users;
+                  return (
+                    <div
+                      key={invitation.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                          <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{invitation.email}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            Invited {formatDistanceToNow(new Date(invitation.created_at), { addSuffix: true })}
+                            {invitation.event && (
+                              <span>
+                                to <strong>{invitation.event.name}</strong>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className={`flex items-center gap-1.5 ${ROLE_CONFIG[invitation.role as OrgRole]?.color || ''}`}
+                        >
+                          <RoleIcon className="w-3 h-3" />
+                          {ROLE_CONFIG[invitation.role as OrgRole]?.label || invitation.role}
+                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleResendInvitation(invitation.id)}
+                              disabled={isResendingInvitation}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Resend invitation
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setInvitationToCancel(invitation.id)}
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Cancel invitation
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Role Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {getAllRoles().map((role) => {
-            const RoleIcon = roleIcons[role];
+            const RoleIcon = roleIcons[role] || Users;
             const config = ROLE_CONFIG[role];
             const count = membersByRole[role]?.length || 0;
 
@@ -314,16 +375,13 @@ const UserManagement = () => {
                       <RoleIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{config.label}</CardTitle>
+                      <CardTitle className="text-base">{config.label}</CardTitle>
                       <CardDescription className="text-xs">
                         {count} member{count !== 1 ? 's' : ''}
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{config.description}</p>
-                </CardContent>
               </Card>
             );
           })}
@@ -360,6 +418,12 @@ const UserManagement = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Invite Team Member Dialog */}
+        <InviteTeamMemberDialog
+          open={isInviteDialogOpen}
+          onOpenChange={setIsInviteDialogOpen}
+        />
 
         {/* Remove Member Dialog */}
         <Dialog open={!!memberToRemove} onOpenChange={() => setMemberToRemove(null)}>
@@ -426,6 +490,31 @@ const UserManagement = () => {
               <Button onClick={handleChangeRole} disabled={isUpdatingRole}>
                 {isUpdatingRole && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Update Role
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Invitation Dialog */}
+        <Dialog open={!!invitationToCancel} onOpenChange={() => setInvitationToCancel(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Invitation</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to cancel this invitation? The recipient will no longer be able to join using this link.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setInvitationToCancel(null)}>
+                Keep Invitation
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancelInvitation}
+                disabled={isCancellingInvitation}
+              >
+                {isCancellingInvitation && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Cancel Invitation
               </Button>
             </DialogFooter>
           </DialogContent>

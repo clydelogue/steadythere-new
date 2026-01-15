@@ -12,6 +12,11 @@ import {
   type Permission,
 } from '@/lib/permissions';
 
+interface SignUpResult {
+  data: { user: User | null; session: Session | null };
+  error: Error | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -31,10 +36,11 @@ interface AuthContextType {
   isAdmin: boolean;
   // Auth methods
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name?: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
   switchOrganization: (orgId: string) => void;
   refreshProfile: () => Promise<void>;
+  refreshOrganizations: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,6 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadUserData(user.id, false);
   };
 
+  // Refresh just organizations (useful after accepting invitations)
+  const refreshOrganizations = async () => {
+    if (!user) return;
+    const orgsData = await fetchOrganizations(user.id);
+    setOrganizations(orgsData);
+    selectCurrentOrg(orgsData);
+  };
+
   // Set up auth listener
   useEffect(() => {
     let mounted = true;
@@ -179,8 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, name?: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async (email: string, password: string, name?: string): Promise<SignUpResult> => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -188,7 +202,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { name }
       }
     });
-    return { error: error as Error | null };
+    return {
+      data: { user: data.user, session: data.session },
+      error: error as Error | null
+    };
   };
 
   const signOut = async () => {
@@ -226,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         switchOrganization,
         refreshProfile,
+        refreshOrganizations,
       }}
     >
       {children}
