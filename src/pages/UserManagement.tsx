@@ -36,10 +36,8 @@ import {
   Users,
   UserPlus,
   Building2,
-  Calendar,
-  Store,
-  Handshake,
-  Heart,
+  Shield,
+  User,
   MoreHorizontal,
   UserMinus,
   RefreshCw,
@@ -54,11 +52,9 @@ import {
 } from '@/lib/permissions';
 
 const roleIcons: Record<OrgRole, React.ElementType> = {
-  org_admin: Building2,
-  event_manager: Calendar,
-  vendor: Store,
-  partner: Handshake,
-  volunteer: Heart,
+  owner: Building2,
+  admin: Shield,
+  member: User,
 };
 
 const UserManagement = () => {
@@ -78,11 +74,11 @@ const UserManagement = () => {
   } = useUserManagement();
 
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<OrgRole>('volunteer');
+  const [inviteRole, setInviteRole] = useState<OrgRole>('member');
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<OrgMember | null>(null);
   const [memberToChangeRole, setMemberToChangeRole] = useState<OrgMember | null>(null);
-  const [newRoleForMember, setNewRoleForMember] = useState<OrgRole>('volunteer');
+  const [newRoleForMember, setNewRoleForMember] = useState<OrgRole>('member');
 
   const userRole = currentOrgMember?.role;
   const userCanManageTeam = canManageTeam(userRole);
@@ -106,7 +102,7 @@ const UserManagement = () => {
         description: `${inviteEmail} has been added as ${ROLE_CONFIG[inviteRole].label}.`,
       });
       setInviteEmail('');
-      setInviteRole('volunteer');
+      setInviteRole('member');
       setIsInviteDialogOpen(false);
     } catch (error: any) {
       toast({
@@ -223,7 +219,7 @@ const UserManagement = () => {
 
   if (!currentOrg) {
     return (
-      <AppLayout>
+      <AppLayout title="User Management">
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
@@ -232,7 +228,7 @@ const UserManagement = () => {
   }
 
   return (
-    <AppLayout>
+    <AppLayout title="User Management" subtitle={`Manage team members in ${currentOrg.name}`}>
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">

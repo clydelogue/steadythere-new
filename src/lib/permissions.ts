@@ -5,43 +5,29 @@ export const ROLE_CONFIG: Record<OrgRole, {
   label: string;
   description: string;
   color: string;
-  icon: 'building' | 'calendar' | 'store' | 'handshake' | 'heart';
+  icon: 'building' | 'shield' | 'user';
   sortOrder: number;
 }> = {
-  org_admin: {
-    label: 'Org Admin',
-    description: 'Full administrative access. Can create, edit, and archive the organization.',
+  owner: {
+    label: 'Owner',
+    description: 'Full administrative access. Can manage all aspects of the organization.',
     color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
     icon: 'building',
     sortOrder: 1,
   },
-  event_manager: {
-    label: 'Event Manager',
-    description: 'Can create new events and manage all event-related activities.',
+  admin: {
+    label: 'Admin',
+    description: 'Can manage events, templates, and team members.',
     color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-    icon: 'calendar',
+    icon: 'shield',
     sortOrder: 2,
   },
-  vendor: {
-    label: 'Vendor',
-    description: 'Can view activities, report on actions, and edit their assigned activities.',
-    color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-    icon: 'store',
-    sortOrder: 3,
-  },
-  partner: {
-    label: 'Partner',
-    description: 'Can view activities, report on actions, and edit their assigned activities.',
+  member: {
+    label: 'Member',
+    description: 'Can view and participate in events and milestones.',
     color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    icon: 'handshake',
-    sortOrder: 4,
-  },
-  volunteer: {
-    label: 'Volunteer',
-    description: 'Can view activities, report on actions, and edit their assigned activities.',
-    color: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400',
-    icon: 'heart',
-    sortOrder: 5,
+    icon: 'user',
+    sortOrder: 3,
   },
 };
 
@@ -74,7 +60,7 @@ export type Permission =
 
 // Role-to-permission mapping
 const ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
-  org_admin: [
+  owner: [
     'org:create',
     'org:edit',
     'org:archive',
@@ -100,7 +86,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
     'team:remove',
     'team:change_roles',
   ],
-  event_manager: [
+  admin: [
     'org:view',
     'event:create',
     'event:edit',
@@ -120,25 +106,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
     'team:view',
     'team:invite',
   ],
-  vendor: [
-    'org:view',
-    'event:view',
-    'milestone:view',
-    'milestone:edit_own',
-    'milestone:report',
-    'template:view',
-    'team:view',
-  ],
-  partner: [
-    'org:view',
-    'event:view',
-    'milestone:view',
-    'milestone:edit_own',
-    'milestone:report',
-    'template:view',
-    'team:view',
-  ],
-  volunteer: [
+  member: [
     'org:view',
     'event:view',
     'milestone:view',
@@ -205,18 +173,18 @@ export function canManageEvents(role: OrgRole | null | undefined): boolean {
  * Check if a role is an admin-level role
  */
 export function isAdminRole(role: OrgRole | null | undefined): boolean {
-  return role === 'org_admin' || role === 'event_manager';
+  return role === 'owner' || role === 'admin';
 }
 
 /**
  * Get roles that a user with the given role can assign to others
  */
 export function getAssignableRoles(role: OrgRole): OrgRole[] {
-  if (role === 'org_admin') {
-    return ['org_admin', 'event_manager', 'vendor', 'partner', 'volunteer'];
+  if (role === 'owner') {
+    return ['admin', 'member'];
   }
-  if (role === 'event_manager') {
-    return ['vendor', 'partner', 'volunteer'];
+  if (role === 'admin') {
+    return ['member'];
   }
   return [];
 }
