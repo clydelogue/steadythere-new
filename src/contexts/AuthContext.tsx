@@ -90,8 +90,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let initialSessionChecked = false;
 
-    // Check initial session FIRST
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Helper to race a promise with a timeout
+    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error('Auth timeout')), ms)
+        )
+      ]);
+    };
+
+    // Check initial session FIRST (with 5 second timeout)
+    withTimeout(supabase.auth.getSession(), 5000).then(async ({ data: { session } }) => {
       if (!mounted) return;
 
       initialSessionChecked = true;
@@ -100,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (session?.user) {
         try {
-          await loadUserData(session.user.id);
+          await withTimeout(loadUserData(session.user.id), 5000);
         } catch (error) {
           console.error('Failed to load user data:', error);
           setOrgsLoaded(true);
