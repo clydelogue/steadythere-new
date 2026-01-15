@@ -793,7 +793,7 @@ export type Database = {
         | "DIGEST"
         | "WELCOME"
         | "EVENT_UPDATE"
-      org_role: "owner" | "admin" | "member"
+      org_role: "org_admin" | "event_manager" | "vendor" | "partner" | "volunteer"
       pattern_type:
         | "TIMING_ADJUSTMENT"
         | "NEW_MILESTONE"
@@ -986,7 +986,7 @@ export const Constants = {
         "WELCOME",
         "EVENT_UPDATE",
       ],
-      org_role: ["owner", "admin", "member"],
+      org_role: ["org_admin", "event_manager", "vendor", "partner", "volunteer"],
       pattern_type: [
         "TIMING_ADJUSTMENT",
         "NEW_MILESTONE",

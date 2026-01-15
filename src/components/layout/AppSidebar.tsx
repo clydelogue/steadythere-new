@@ -31,7 +31,7 @@ const navigation = [
   { name: 'Events', href: '/events', icon: Calendar },
   { name: 'Templates', href: '/templates', icon: FileText },
   { name: 'Documents', href: '/documents', icon: FolderOpen },
-  { name: 'Team', href: '/team', icon: Users },
+  { name: 'Users', href: '/users', icon: Users },
   { name: 'AI Test', href: '/ai-test', icon: Bot },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

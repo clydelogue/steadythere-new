@@ -1,7 +1,16 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Profile, Organization, OrganizationMember, OrgRole } from '@/types/database';
+import {
+  hasPermission,
+  hasAnyPermission,
+  canManageTeam,
+  canManageOrg,
+  canManageEvents,
+  isAdminRole,
+  type Permission,
+} from '@/lib/permissions';
 
 interface AuthContextType {
   user: User | null;
@@ -9,9 +18,18 @@ interface AuthContextType {
   profile: Profile | null;
   currentOrg: Organization | null;
   currentOrgMember: OrganizationMember | null;
+  currentRole: OrgRole | null;
   organizations: OrganizationMember[];
   isLoading: boolean;
-  orgsLoaded: boolean; // New flag to track if orgs have been fetched
+  orgsLoaded: boolean;
+  // Permission helpers
+  hasPermission: (permission: Permission) => boolean;
+  hasAnyPermission: (permissions: Permission[]) => boolean;
+  canManageTeam: boolean;
+  canManageOrg: boolean;
+  canManageEvents: boolean;
+  isAdmin: boolean;
+  // Auth methods
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -32,6 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const currentOrgMember = organizations.find(om => om.organization_id === currentOrgId) || organizations[0] || null;
   const currentOrg = currentOrgMember?.organization || null;
+  const currentRole = currentOrgMember?.role || null;
+
+  // Memoized permission values
+  const permissions = useMemo(() => ({
+    hasPermission: (permission: Permission) => hasPermission(currentRole, permission),
+    hasAnyPermission: (perms: Permission[]) => hasAnyPermission(currentRole, perms),
+    canManageTeam: canManageTeam(currentRole),
+    canManageOrg: canManageOrg(currentRole),
+    canManageEvents: canManageEvents(currentRole),
+    isAdmin: isAdminRole(currentRole),
+  }), [currentRole]);
 
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
@@ -180,14 +209,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         currentOrg,
         currentOrgMember,
+        currentRole,
         organizations,
         isLoading,
         orgsLoaded,
+        // Permission helpers
+        hasPermission: permissions.hasPermission,
+        hasAnyPermission: permissions.hasAnyPermission,
+        canManageTeam: permissions.canManageTeam,
+        canManageOrg: permissions.canManageOrg,
+        canManageEvents: permissions.canManageEvents,
+        isAdmin: permissions.isAdmin,
+        // Auth methods
         signIn,
         signUp,
         signOut,
         switchOrganization,
-        refreshProfile
+        refreshProfile,
       }}
     >
       {children}
