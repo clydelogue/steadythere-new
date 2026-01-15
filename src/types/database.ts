@@ -4,7 +4,8 @@
 export type EventStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
 export type MilestoneStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED' | 'SKIPPED';
 export type MilestoneCategory = 'VENUE' | 'CATERING' | 'MARKETING' | 'LOGISTICS' | 'PERMITS' | 'SPONSORS' | 'VOLUNTEERS' | 'GENERAL';
-export type OrgRole = 'owner' | 'admin' | 'member';
+export type OrgRole = 'org_admin' | 'event_manager' | 'vendor' | 'partner' | 'volunteer';
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'cancelled';
 export type DocumentCategory = 'CONTRACT' | 'INVOICE' | 'PERMIT' | 'MARKETING' | 'PHOTO' | 'REPORT' | 'CORRESPONDENCE' | 'UNCATEGORIZED';
 export type DocumentSource = 'UPLOAD' | 'EMAIL' | 'GENERATED';
 export type NotificationType = 'REMINDER' | 'OVERDUE' | 'ESCALATION' | 'ASSIGNMENT' | 'DIGEST' | 'WELCOME' | 'EVENT_UPDATE';
@@ -212,4 +213,39 @@ export interface AttentionItem {
   milestone: Milestone;
   event: Event;
   daysUntilDue: number;
+}
+
+export interface Invitation {
+  id: string;
+  organization_id: string;
+  event_id: string | null;
+  email: string;
+  role: OrgRole;
+  token: string;
+  status: InvitationStatus;
+  invited_by: string;
+  message: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  organization?: Organization;
+  event?: Event;
+  inviter?: Profile;
+}
+
+export interface InvitationDetails {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  event_id: string | null;
+  event_name: string | null;
+  email: string;
+  role: OrgRole;
+  inviter_name: string | null;
+  inviter_email: string;
+  message: string | null;
+  expires_at: string;
 }

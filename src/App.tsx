@@ -23,6 +23,7 @@ import OrganizationSettings from "./pages/settings/OrganizationSettings";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import TeamSettings from "./pages/settings/TeamSettings";
 import NotificationSettings from "./pages/settings/NotificationSettings";
+import JoinInvitation from "./pages/JoinInvitation";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/join/:token" element={<JoinInvitation />} />
             <Route path="/onboarding" element={
               <ProtectedRoute requireOrg={false}>
                 <Onboarding />
