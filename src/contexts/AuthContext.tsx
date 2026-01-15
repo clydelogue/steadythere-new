@@ -88,60 +88,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Set up auth listener
   useEffect(() => {
     let mounted = true;
-    let initialSessionChecked = false;
 
     // Helper to race a promise with a timeout
     const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
       return Promise.race([
         promise,
         new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error('Auth timeout')), ms)
+          setTimeout(() => reject(new Error('Timeout')), ms)
         )
       ]);
     };
 
-    // Check initial session FIRST (with 5 second timeout)
-    withTimeout(supabase.auth.getSession(), 5000).then(async ({ data: { session } }) => {
-      if (!mounted) return;
-
-      initialSessionChecked = true;
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        try {
-          await withTimeout(loadUserData(session.user.id), 5000);
-        } catch (error) {
-          console.error('Failed to load user data:', error);
-          setOrgsLoaded(true);
-        }
-      } else {
-        setOrgsLoaded(true);
-      }
-      setIsLoading(false);
-    }).catch((error) => {
-      console.error('Failed to get session:', error);
-      if (!mounted) return;
-      setOrgsLoaded(true);
-      setIsLoading(false);
-    });
-
-    // Set up listener for SUBSEQUENT auth changes (login, logout, token refresh)
+    // Use onAuthStateChange for ALL auth events (including INITIAL_SESSION)
+    // This is the recommended Supabase approach and avoids race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        
-        // Skip the initial INITIAL_SESSION event - we handle it above
-        if (event === 'INITIAL_SESSION') return;
-        
+
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Reset orgsLoaded when auth state changes (new login)
-          setOrgsLoaded(false);
+          // Reset orgsLoaded when loading user data
+          if (event !== 'INITIAL_SESSION') {
+            setOrgsLoaded(false);
+          }
           try {
-            await loadUserData(session.user.id);
+            await withTimeout(loadUserData(session.user.id), 5000);
           } catch (error) {
             console.error('Failed to load user data:', error);
             setOrgsLoaded(true);
@@ -156,8 +129,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    // Fallback timeout in case onAuthStateChange never fires
+    const fallbackTimeout = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.warn('Auth initialization timeout - no auth state received');
+        setOrgsLoaded(true);
+        setIsLoading(false);
+      }
+    }, 5000);
+
     return () => {
       mounted = false;
+      clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
   }, []);
