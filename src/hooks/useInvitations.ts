@@ -43,14 +43,14 @@ export function useInvitations() {
         .select(`
           *,
           inviter:profiles!invitations_invited_by_fkey(id, name, email),
-          event:events(id, name)
+          event:events!invitations_event_id_fkey(id, name)
         `)
         .eq('organization_id', currentOrg.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as (Invitation & { inviter: { id: string; name: string | null; email: string }; event: { id: string; name: string } | null })[];
+      return data as unknown as (Invitation & { inviter: { id: string; name: string | null; email: string }; event: { id: string; name: string } | null })[];
     },
     enabled: !!currentOrg,
   });
@@ -146,17 +146,49 @@ export function useInvitations() {
 export function useInvitationByToken(token: string | undefined) {
   return useQuery({
     queryKey: ['invitation-details', token],
-    queryFn: async () => {
+    queryFn: async (): Promise<InvitationDetails | null> => {
       if (!token) return null;
 
-      const { data, error } = await supabase.rpc('get_invitation_by_token', {
-        invitation_token: token,
-      });
+      // Query the invitation directly with token
+      const { data, error } = await supabase
+        .from('invitations')
+        .select(`
+          id,
+          organization_id,
+          event_id,
+          email,
+          role,
+          message,
+          expires_at,
+          status,
+          organization:organizations!invitations_organization_id_fkey(name),
+          event:events!invitations_event_id_fkey(name),
+          inviter:profiles!invitations_invited_by_fkey(name, email)
+        `)
+        .eq('token', token)
+        .eq('status', 'pending')
+        .single();
 
-      if (error) throw error;
-      if (!data || data.length === 0) return null;
+      if (error || !data) return null;
 
-      return data[0] as InvitationDetails;
+      // Transform to InvitationDetails
+      const org = data.organization as unknown as { name: string } | null;
+      const event = data.event as unknown as { name: string } | null;
+      const inviter = data.inviter as unknown as { name: string | null; email: string } | null;
+
+      return {
+        id: data.id,
+        organization_id: data.organization_id,
+        organization_name: org?.name || 'Unknown Organization',
+        event_id: data.event_id,
+        event_name: event?.name || null,
+        email: data.email,
+        role: data.role,
+        inviter_name: inviter?.name || null,
+        inviter_email: inviter?.email || '',
+        message: data.message,
+        expires_at: data.expires_at,
+      };
     },
     enabled: !!token,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -168,14 +200,60 @@ export function useAcceptInvitation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ token, userId }: { token: string; userId: string }) => {
-      const { data, error } = await supabase.rpc('accept_invitation', {
-        invitation_token: token,
-        accepting_user_id: userId,
-      });
+    mutationFn: async ({ token, userId }: { token: string; userId: string }): Promise<{ success: boolean; error?: string; organization_id?: string; event_id?: string; role?: string }> => {
+      // Get the invitation
+      const { data: invitation, error: fetchError } = await supabase
+        .from('invitations')
+        .select('*')
+        .eq('token', token)
+        .eq('status', 'pending')
+        .single();
 
-      if (error) throw error;
-      return data as { success: boolean; error?: string; organization_id?: string; event_id?: string; role?: string; message?: string };
+      if (fetchError || !invitation) {
+        return { success: false, error: 'Invitation not found or already used' };
+      }
+
+      // Check if expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        await supabase
+          .from('invitations')
+          .update({ status: 'expired' })
+          .eq('id', invitation.id);
+        return { success: false, error: 'Invitation has expired' };
+      }
+
+      // Add user to organization
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: invitation.organization_id,
+          user_id: userId,
+          role: invitation.role,
+        });
+
+      if (memberError) {
+        if (memberError.code === '23505') {
+          return { success: false, error: 'You are already a member of this organization' };
+        }
+        return { success: false, error: memberError.message };
+      }
+
+      // Mark invitation as accepted
+      await supabase
+        .from('invitations')
+        .update({ 
+          status: 'accepted',
+          accepted_at: new Date().toISOString(),
+          accepted_by: userId,
+        })
+        .eq('id', invitation.id);
+
+      return { 
+        success: true, 
+        organization_id: invitation.organization_id,
+        event_id: invitation.event_id || undefined,
+        role: invitation.role,
+      };
     },
     onSuccess: () => {
       // Invalidate relevant queries
