@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Users, UserPlus, Building2, Calendar, Store, Handshake, Heart } from 'lucide-react';
+import { Loader2, Users, UserPlus, Building2, Shield, User } from 'lucide-react';
 import type { OrgRole } from '@/types/database';
 import { ROLE_CONFIG, canManageTeam } from '@/lib/permissions';
 
@@ -27,11 +27,9 @@ interface TeamMember {
 }
 
 const roleIcons: Record<OrgRole, React.ElementType> = {
-  org_admin: Building2,
-  event_manager: Calendar,
-  vendor: Store,
-  partner: Handshake,
-  volunteer: Heart,
+  owner: Building2,
+  admin: Shield,
+  member: User,
 };
 
 const TeamSettings = () => {

@@ -4,7 +4,7 @@
 export type EventStatus = 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'ARCHIVED';
 export type MilestoneStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED' | 'SKIPPED';
 export type MilestoneCategory = 'VENUE' | 'CATERING' | 'MARKETING' | 'LOGISTICS' | 'PERMITS' | 'SPONSORS' | 'VOLUNTEERS' | 'GENERAL';
-export type OrgRole = 'org_admin' | 'event_manager' | 'vendor' | 'partner' | 'volunteer';
+export type OrgRole = 'owner' | 'admin' | 'member';
 export type DocumentCategory = 'CONTRACT' | 'INVOICE' | 'PERMIT' | 'MARKETING' | 'PHOTO' | 'REPORT' | 'CORRESPONDENCE' | 'UNCATEGORIZED';
 export type DocumentSource = 'UPLOAD' | 'EMAIL' | 'GENERATED';
 export type NotificationType = 'REMINDER' | 'OVERDUE' | 'ESCALATION' | 'ASSIGNMENT' | 'DIGEST' | 'WELCOME' | 'EVENT_UPDATE';
