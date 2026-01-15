@@ -26,7 +26,7 @@ const settingsNav = [
     description: 'Your personal settings'
   },
   { 
-    name: 'Team', 
+    name: 'Teams', 
     href: '/settings/team', 
     icon: Users,
     description: 'Members & roles'
