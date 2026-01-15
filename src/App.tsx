@@ -17,6 +17,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import AITest from "./pages/AITest";
+import UserManagement from "./pages/UserManagement";
 import SettingsIndex from "./pages/settings/SettingsIndex";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
 import ProfileSettings from "./pages/settings/ProfileSettings";
@@ -71,6 +72,11 @@ const App = () => (
             <Route path="/ai-test" element={
               <ProtectedRoute>
                 <AITest />
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <UserManagement />
               </ProtectedRoute>
             } />
             <Route path="/templates" element={

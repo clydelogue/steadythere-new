@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Users, UserPlus, Crown, Shield, User } from 'lucide-react';
+import { Loader2, Users, UserPlus, Building2, Calendar, Store, Handshake, Heart } from 'lucide-react';
 import type { OrgRole } from '@/types/database';
+import { ROLE_CONFIG, canManageTeam } from '@/lib/permissions';
 
 interface TeamMember {
   id: string;
@@ -26,21 +27,11 @@ interface TeamMember {
 }
 
 const roleIcons: Record<OrgRole, React.ElementType> = {
-  owner: Crown,
-  admin: Shield,
-  member: User,
-};
-
-const roleLabels: Record<OrgRole, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  member: 'Member',
-};
-
-const roleColors: Record<OrgRole, string> = {
-  owner: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  admin: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  member: 'bg-muted text-muted-foreground',
+  org_admin: Building2,
+  event_manager: Calendar,
+  vendor: Store,
+  partner: Handshake,
+  volunteer: Heart,
 };
 
 const TeamSettings = () => {
@@ -103,7 +94,7 @@ const TeamSettings = () => {
     }
   };
 
-  const canManageTeam = currentOrgMember?.role === 'owner' || currentOrgMember?.role === 'admin';
+  const userCanManageTeam = canManageTeam(currentOrgMember?.role);
 
   if (!currentOrg) {
     return (
@@ -119,7 +110,7 @@ const TeamSettings = () => {
     <SettingsLayout title="Team" description="Manage your team members">
       <div className="space-y-6">
         {/* Invite Members */}
-        {canManageTeam && (
+        {userCanManageTeam && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -195,12 +186,12 @@ const TeamSettings = () => {
                           </p>
                         </div>
                       </div>
-                      <Badge 
-                        variant="secondary" 
-                        className={`flex items-center gap-1.5 ${roleColors[member.role]}`}
+                      <Badge
+                        variant="secondary"
+                        className={`flex items-center gap-1.5 ${ROLE_CONFIG[member.role].color}`}
                       >
                         <RoleIcon className="w-3 h-3" />
-                        {roleLabels[member.role]}
+                        {ROLE_CONFIG[member.role].label}
                       </Badge>
                     </div>
                   );
