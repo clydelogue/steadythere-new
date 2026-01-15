@@ -17,6 +17,11 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import AITest from "./pages/AITest";
+import SettingsIndex from "./pages/settings/SettingsIndex";
+import OrganizationSettings from "./pages/settings/OrganizationSettings";
+import ProfileSettings from "./pages/settings/ProfileSettings";
+import TeamSettings from "./pages/settings/TeamSettings";
+import NotificationSettings from "./pages/settings/NotificationSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,6 +91,31 @@ const App = () => (
             <Route path="/templates/:id/edit" element={
               <ProtectedRoute>
                 <EditTemplate />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <SettingsIndex />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/organization" element={
+              <ProtectedRoute>
+                <OrganizationSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/profile" element={
+              <ProtectedRoute>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/team" element={
+              <ProtectedRoute>
+                <TeamSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/notifications" element={
+              <ProtectedRoute>
+                <NotificationSettings />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
