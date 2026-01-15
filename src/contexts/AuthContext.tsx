@@ -109,6 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setOrgsLoaded(true);
       }
       setIsLoading(false);
+    }).catch((error) => {
+      console.error('Failed to get session:', error);
+      if (!mounted) return;
+      setOrgsLoaded(true);
+      setIsLoading(false);
     });
 
     // Set up listener for SUBSEQUENT auth changes (login, logout, token refresh)
