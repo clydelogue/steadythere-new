@@ -735,6 +735,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_admin_or_manager: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_org_member: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
@@ -793,7 +797,12 @@ export type Database = {
         | "DIGEST"
         | "WELCOME"
         | "EVENT_UPDATE"
-      org_role: "owner" | "admin" | "member"
+      org_role:
+        | "org_admin"
+        | "event_manager"
+        | "vendor"
+        | "partner"
+        | "volunteer"
       pattern_type:
         | "TIMING_ADJUSTMENT"
         | "NEW_MILESTONE"
@@ -986,7 +995,13 @@ export const Constants = {
         "WELCOME",
         "EVENT_UPDATE",
       ],
-      org_role: ["owner", "admin", "member"],
+      org_role: [
+        "org_admin",
+        "event_manager",
+        "vendor",
+        "partner",
+        "volunteer",
+      ],
       pattern_type: [
         "TIMING_ADJUSTMENT",
         "NEW_MILESTONE",
