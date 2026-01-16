@@ -1,3 +1,6 @@
+-- Enable pgcrypto extension for gen_random_bytes
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Create invitations table for team member invitations
 CREATE TABLE public.invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
