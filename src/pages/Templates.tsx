@@ -24,7 +24,7 @@ const Templates = () => {
     <AppLayout title="Event Templates" subtitle="Reusable templates for your events">
       <div className="flex items-center justify-end mb-6">
         <Button asChild>
-          <Link to="/templates/new">
+          <Link to="/app/templates/new">
             <Plus className="w-4 h-4 mr-2" />
             Create Template
           </Link>
@@ -34,7 +34,7 @@ const Templates = () => {
       {templates.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((template) => (
-            <Link key={template.id} to={`/templates/${template.id}`}>
+            <Link key={template.id} to={`/app/templates/${template.id}`}>
               <Card className="h-full hover:border-primary/50 hover:shadow-md transition-all cursor-pointer">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
@@ -88,7 +88,7 @@ const Templates = () => {
             Templates learn from your past events to improve over time.
           </p>
           <Button asChild>
-            <Link to="/templates/new">
+            <Link to="/app/templates/new">
               <Plus className="w-4 h-4 mr-2" />
               Create Your First Template
             </Link>

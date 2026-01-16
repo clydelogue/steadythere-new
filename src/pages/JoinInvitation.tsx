@@ -59,9 +59,9 @@ const JoinInvitation = () => {
             toast.success(`You've joined ${invitation.organization_name}!`);
             // Navigate to the org/event
             if (result.event_id) {
-              navigate(`/events/${result.event_id}`, { replace: true });
+              navigate(`/app/events/${result.event_id}`, { replace: true });
             } else {
-              navigate('/', { replace: true });
+              navigate('/app', { replace: true });
             }
           } else {
             toast.error(result.error || 'Failed to accept invitation');
@@ -115,9 +115,9 @@ const JoinInvitation = () => {
               await refreshOrganizations();
               toast.success(`Welcome! You've joined ${invitation?.organization_name}`);
               if (result.event_id) {
-                navigate(`/events/${result.event_id}`, { replace: true });
+                navigate(`/app/events/${result.event_id}`, { replace: true });
               } else {
-                navigate('/', { replace: true });
+                navigate('/app', { replace: true });
               }
             }
           } catch (acceptError: any) {
@@ -158,7 +158,7 @@ const JoinInvitation = () => {
               Please contact the person who invited you for a new invitation.
             </p>
             <Button asChild>
-              <Link to="/auth">Go to Sign In</Link>
+              <Link to="/login">Go to Sign In</Link>
             </Button>
           </CardContent>
         </Card>

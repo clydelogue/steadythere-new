@@ -18,7 +18,7 @@ const Onboarding = () => {
 
   // If user already has an org, redirect to dashboard immediately
   if (orgsLoaded && organizations.length > 0) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const generateSlug = (name: string) => {
@@ -70,9 +70,9 @@ const Onboarding = () => {
 
       await refreshProfile();
       setStep('complete');
-      
+
       setTimeout(() => {
-        navigate('/');
+        navigate('/app');
       }, 2000);
     } catch (error: any) {
       toast.error(error.message || 'Failed to create organization');

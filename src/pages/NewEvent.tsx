@@ -158,7 +158,7 @@ const NewEvent = () => {
       }
 
       toast.success('Event created successfully!');
-      navigate(`/events/${event.id}`);
+      navigate(`/app/events/${event.id}`);
     } catch (error: any) {
       console.error('Error creating event:', error);
       toast.error(error.message || 'Failed to create event');
@@ -225,7 +225,7 @@ const NewEvent = () => {
                   <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground mb-4">No templates yet. Create one to get started.</p>
                   <Button asChild variant="outline">
-                    <Link to="/templates/new">
+                    <Link to="/app/templates/new">
                       <Plus className="w-4 h-4 mr-2" />
                       Create Template
                     </Link>
