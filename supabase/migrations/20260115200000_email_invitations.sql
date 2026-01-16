@@ -1,72 +1,93 @@
 -- Migration: Add email invitation system
 -- Allows inviting team members via email to org or specific events
+-- NOTE: Made idempotent - skips if invitations table already exists
 
--- Create invitation status enum
-CREATE TYPE invitation_status AS ENUM (
-  'pending',
-  'accepted',
-  'expired',
-  'cancelled'
-);
+-- Create invitation status enum (if not exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'invitation_status') THEN
+    CREATE TYPE invitation_status AS ENUM (
+      'pending',
+      'accepted',
+      'expired',
+      'cancelled'
+    );
+  END IF;
+END $$;
 
--- Create invitations table
-CREATE TABLE invitations (
+-- Create invitations table only if it doesn't exist
+CREATE TABLE IF NOT EXISTS invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  event_id uuid REFERENCES events(id) ON DELETE CASCADE, -- NULL means org-level invite
+  event_id uuid REFERENCES events(id) ON DELETE CASCADE,
   email text NOT NULL,
   role org_role NOT NULL DEFAULT 'volunteer',
-  token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
-  status invitation_status NOT NULL DEFAULT 'pending',
-  invited_by uuid NOT NULL REFERENCES profiles(id),
-  message text, -- Optional personal message from inviter
+  token text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')),
+  invited_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  message text,
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
   accepted_at timestamptz,
-  accepted_by uuid REFERENCES profiles(id),
+  accepted_by uuid REFERENCES auth.users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Create indexes for common queries
-CREATE INDEX idx_invitations_organization ON invitations(organization_id);
-CREATE INDEX idx_invitations_email ON invitations(email);
-CREATE INDEX idx_invitations_token ON invitations(token);
-CREATE INDEX idx_invitations_status ON invitations(status);
-CREATE INDEX idx_invitations_event ON invitations(event_id) WHERE event_id IS NOT NULL;
-CREATE INDEX idx_invitations_pending ON invitations(organization_id, status) WHERE status = 'pending';
+-- Create indexes (IF NOT EXISTS not supported, use DO block)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_invitations_organization') THEN
+    CREATE INDEX idx_invitations_organization ON invitations(organization_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_invitations_email') THEN
+    CREATE INDEX idx_invitations_email ON invitations(email);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_invitations_token') THEN
+    CREATE INDEX idx_invitations_token ON invitations(token);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_invitations_status') THEN
+    CREATE INDEX idx_invitations_status ON invitations(status);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_invitations_event') THEN
+    CREATE INDEX idx_invitations_event ON invitations(event_id) WHERE event_id IS NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_invitations_pending') THEN
+    CREATE INDEX idx_invitations_pending ON invitations(organization_id, status) WHERE status = 'pending';
+  END IF;
+END $$;
 
--- Add updated_at trigger
-CREATE TRIGGER update_invitations_updated_at
-  BEFORE UPDATE ON invitations
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
--- RLS policies for invitations
+-- Enable RLS
 ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
 
--- Org members can view invitations for their org
-CREATE POLICY "Org members can view org invitations"
-  ON invitations FOR SELECT
-  USING (is_org_member(auth.uid(), organization_id));
+-- RLS policies (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'invitations' AND policyname = 'Org members can view org invitations') THEN
+    CREATE POLICY "Org members can view org invitations"
+      ON invitations FOR SELECT
+      USING (is_org_member(auth.uid(), organization_id));
+  END IF;
 
--- Admins can create invitations
-CREATE POLICY "Admins can create invitations"
-  ON invitations FOR INSERT
-  WITH CHECK (
-    has_admin_access(auth.uid(), organization_id)
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'invitations' AND policyname = 'Admins can create invitations') THEN
+    CREATE POLICY "Admins can create invitations"
+      ON invitations FOR INSERT
+      WITH CHECK (has_admin_access(auth.uid(), organization_id));
+  END IF;
 
--- Admins can update invitations (cancel, etc.)
-CREATE POLICY "Admins can update invitations"
-  ON invitations FOR UPDATE
-  USING (has_admin_access(auth.uid(), organization_id));
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'invitations' AND policyname = 'Admins can update invitations') THEN
+    CREATE POLICY "Admins can update invitations"
+      ON invitations FOR UPDATE
+      USING (has_admin_access(auth.uid(), organization_id));
+  END IF;
 
--- Admins can delete invitations
-CREATE POLICY "Admins can delete invitations"
-  ON invitations FOR DELETE
-  USING (has_admin_access(auth.uid(), organization_id));
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'invitations' AND policyname = 'Admins can delete invitations') THEN
+    CREATE POLICY "Admins can delete invitations"
+      ON invitations FOR DELETE
+      USING (has_admin_access(auth.uid(), organization_id));
+  END IF;
+END $$;
 
--- Function to check if an invitation is valid (not expired, not used)
+-- Function to check if an invitation is valid
 CREATE OR REPLACE FUNCTION is_valid_invitation(invitation_token text)
 RETURNS boolean AS $$
 BEGIN
@@ -79,7 +100,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to get invitation details by token (public access for signup flow)
+-- Function to get invitation details by token
 CREATE OR REPLACE FUNCTION get_invitation_by_token(invitation_token text)
 RETURNS TABLE (
   id uuid,
@@ -103,7 +124,7 @@ BEGIN
     i.event_id,
     e.name as event_name,
     i.email,
-    i.role,
+    i.role::org_role,
     p.name as inviter_name,
     p.email as inviter_email,
     i.message,
@@ -123,9 +144,7 @@ CREATE OR REPLACE FUNCTION accept_invitation(invitation_token text, accepting_us
 RETURNS json AS $$
 DECLARE
   inv record;
-  result json;
 BEGIN
-  -- Get and lock the invitation
   SELECT * INTO inv
   FROM invitations
   WHERE token = invitation_token
@@ -137,13 +156,11 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Invalid or expired invitation');
   END IF;
 
-  -- Check if user is already a member
   IF EXISTS (
     SELECT 1 FROM organization_members
     WHERE organization_id = inv.organization_id
       AND user_id = accepting_user_id
   ) THEN
-    -- Update invitation as accepted anyway
     UPDATE invitations
     SET status = 'accepted',
         accepted_at = now(),
@@ -153,11 +170,9 @@ BEGIN
     RETURN json_build_object('success', true, 'message', 'Already a member', 'organization_id', inv.organization_id);
   END IF;
 
-  -- Add user as organization member
   INSERT INTO organization_members (organization_id, user_id, role)
-  VALUES (inv.organization_id, accepting_user_id, inv.role);
+  VALUES (inv.organization_id, accepting_user_id, inv.role::org_role);
 
-  -- Update invitation status
   UPDATE invitations
   SET status = 'accepted',
       accepted_at = now(),
@@ -173,11 +188,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Allow unauthenticated access to check invitation validity
--- (needed for signup flow)
+-- Grant access for signup flow
 GRANT EXECUTE ON FUNCTION is_valid_invitation(text) TO anon;
 GRANT EXECUTE ON FUNCTION get_invitation_by_token(text) TO anon;
 GRANT EXECUTE ON FUNCTION accept_invitation(text, uuid) TO authenticated;
 
--- Add comment
 COMMENT ON TABLE invitations IS 'Email invitations for team members to join organizations or specific events';
