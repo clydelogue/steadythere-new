@@ -1,14 +1,12 @@
--- Enable pgcrypto extension for gen_random_bytes
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 -- Create invitations table for team member invitations
+-- Using replace on gen_random_uuid for token generation (Supabase-compatible)
 CREATE TABLE public.invitations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   event_id uuid REFERENCES public.events(id) ON DELETE SET NULL,
   email text NOT NULL,
   role org_role NOT NULL DEFAULT 'volunteer'::org_role,
-  token text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')),
   invited_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   message text,
