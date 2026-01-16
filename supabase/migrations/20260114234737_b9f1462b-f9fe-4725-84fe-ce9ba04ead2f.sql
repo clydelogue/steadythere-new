@@ -29,24 +29,39 @@ ALTER TABLE public.events
 -- Enable RLS on template_versions
 ALTER TABLE public.template_versions ENABLE ROW LEVEL SECURITY;
 
--- RLS policies for template_versions
-CREATE POLICY "Org members can view template versions"
-  ON public.template_versions FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.event_types et
-      WHERE et.id = event_type_id AND public.is_org_member(auth.uid(), et.organization_id)
-    )
-  );
+-- RLS policies for template_versions (skip if already exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'template_versions'
+    AND policyname = 'Org members can view template versions'
+  ) THEN
+    CREATE POLICY "Org members can view template versions"
+      ON public.template_versions FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.event_types et
+          WHERE et.id = event_type_id AND public.is_org_member(auth.uid(), et.organization_id)
+        )
+      );
+  END IF;
 
-CREATE POLICY "Org members can create template versions"
-  ON public.template_versions FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.event_types et
-      WHERE et.id = event_type_id AND public.is_org_member(auth.uid(), et.organization_id)
-    )
-  );
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'template_versions'
+    AND policyname = 'Org members can create template versions'
+  ) THEN
+    CREATE POLICY "Org members can create template versions"
+      ON public.template_versions FOR INSERT
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM public.event_types et
+          WHERE et.id = event_type_id AND public.is_org_member(auth.uid(), et.organization_id)
+        )
+      );
+  END IF;
+END $$;
 
 -- Update milestone_templates RLS to include template_version access
 -- Members can insert milestone templates for their org's templates
