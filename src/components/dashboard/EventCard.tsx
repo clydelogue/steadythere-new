@@ -74,7 +74,7 @@ export function EventCard({ event, index }: EventCardProps) {
       transition={{ delay: index * 0.05 }}
     >
       <Link
-        to={`/events/${event.id}`}
+        to={`/app/events/${event.id}`}
         className="block bg-card rounded-xl border border-border p-5 card-interactive"
       >
         <div className="flex items-start justify-between gap-4">

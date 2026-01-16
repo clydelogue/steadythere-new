@@ -13,33 +13,33 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
 const settingsNav = [
-  { 
-    name: 'Organization', 
-    href: '/settings/organization', 
+  {
+    name: 'Organization',
+    href: '/app/settings/organization',
     icon: Building2,
     description: 'Name, timezone & defaults'
   },
-  { 
-    name: 'Profile', 
-    href: '/settings/profile', 
+  {
+    name: 'Profile',
+    href: '/app/settings/profile',
     icon: User,
     description: 'Your personal settings'
   },
-  { 
-    name: 'Teams', 
-    href: '/settings/team', 
+  {
+    name: 'Teams',
+    href: '/app/settings/team',
     icon: Users,
     description: 'Members & roles'
   },
-  { 
-    name: 'Notifications', 
-    href: '/settings/notifications', 
+  {
+    name: 'Notifications',
+    href: '/app/settings/notifications',
     icon: Bell,
     description: 'Email & digest settings'
   },
-  { 
-    name: 'Templates', 
-    href: '/templates', 
+  {
+    name: 'Templates',
+    href: '/app/templates',
     icon: FileText,
     description: 'Event templates'
   },
@@ -60,7 +60,7 @@ export function SettingsLayout({ children, title, description }: SettingsLayoutP
       <div className="lg:hidden border-b border-border bg-card">
         <div className="flex items-center gap-3 p-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to="/">
+            <Link to="/app">
               <ChevronLeft className="w-5 h-5" />
             </Link>
           </Button>
@@ -76,7 +76,7 @@ export function SettingsLayout({ children, title, description }: SettingsLayoutP
           <div className="p-6 border-b border-border">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" asChild className="shrink-0">
-                <Link to="/">
+                <Link to="/app">
                   <ChevronLeft className="w-5 h-5" />
                 </Link>
               </Button>
@@ -89,8 +89,8 @@ export function SettingsLayout({ children, title, description }: SettingsLayoutP
           
           <nav className="flex-1 p-4 space-y-1">
             {settingsNav.map((item) => {
-              const isActive = item.href === '/templates' 
-                ? location.pathname.startsWith('/templates')
+              const isActive = item.href === '/app/templates'
+                ? location.pathname.startsWith('/app/templates')
                 : location.pathname === item.href;
               
               return (
@@ -131,8 +131,8 @@ export function SettingsLayout({ children, title, description }: SettingsLayoutP
         <div className="lg:hidden w-full">
           <div className="flex overflow-x-auto gap-2 p-4 border-b border-border bg-card">
             {settingsNav.map((item) => {
-              const isActive = item.href === '/templates' 
-                ? location.pathname.startsWith('/templates')
+              const isActive = item.href === '/app/templates'
+                ? location.pathname.startsWith('/app/templates')
                 : location.pathname === item.href;
               
               return (

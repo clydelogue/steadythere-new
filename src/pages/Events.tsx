@@ -26,7 +26,7 @@ const Events = () => {
           Filter
         </Button>
         <Button asChild>
-          <Link to="/events/new">
+          <Link to="/app/events/new">
             <Plus className="w-4 h-4 mr-2" />
             New Event
           </Link>
@@ -47,7 +47,7 @@ const Events = () => {
             Create your first event to start planning milestones, assigning tasks, and tracking progress.
           </p>
           <Button asChild>
-            <Link to="/events/new">
+            <Link to="/app/events/new">
               <Plus className="w-4 h-4 mr-2" />
               Create Your First Event
             </Link>

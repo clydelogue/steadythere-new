@@ -54,7 +54,7 @@ const TemplateDetail = () => {
     try {
       await deleteTemplate.mutateAsync(id);
       toast.success('Template deleted successfully');
-      navigate('/templates');
+      navigate('/app/templates');
     } catch (err) {
       toast.error('Failed to delete template');
       setIsDeleting(false);
@@ -79,7 +79,7 @@ const TemplateDetail = () => {
             The template you're looking for doesn't exist or has been deleted.
           </p>
           <Button asChild>
-            <Link to="/templates">
+            <Link to="/app/templates">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Templates
             </Link>
@@ -100,7 +100,7 @@ const TemplateDetail = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/templates">
+            <Link to="/app/templates">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Link>
@@ -109,7 +109,7 @@ const TemplateDetail = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <Link to={`/templates/${id}/edit`}>
+            <Link to={`/app/templates/${id}/edit`}>
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </Link>
@@ -160,7 +160,7 @@ const TemplateDetail = () => {
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link to={`/templates/${id}/edit`}>
+              <Link to={`/app/templates/${id}/edit`}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Milestone
               </Link>
@@ -213,7 +213,7 @@ const TemplateDetail = () => {
             <div className="text-center py-10 text-muted-foreground">
               <p>No milestones defined yet.</p>
               <Button variant="link" asChild className="mt-2">
-                <Link to={`/templates/${id}/edit`}>Add milestones</Link>
+                <Link to={`/app/templates/${id}/edit`}>Add milestones</Link>
               </Button>
             </div>
           )}
@@ -230,7 +230,7 @@ const TemplateDetail = () => {
             </p>
           </div>
           <Button asChild>
-            <Link to={`/events/new?template=${id}`}>
+            <Link to={`/app/events/new?template=${id}`}>
               <Plus className="w-4 h-4 mr-2" />
               Create Event
             </Link>

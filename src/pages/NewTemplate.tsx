@@ -208,7 +208,7 @@ Also suggest a template name based on the description.
       });
 
       toast.success('Template created successfully');
-      navigate(`/templates/${template.id}`);
+      navigate(`/app/templates/${template.id}`);
     } catch (error: any) {
       if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
         toast.error('A template with this name already exists');
@@ -224,7 +224,7 @@ Also suggest a template name based on the description.
     <AppLayout title="Create Template" subtitle="Build a reusable event template">
       <div className="max-w-3xl">
         <Button variant="ghost" size="sm" asChild className="mb-6">
-          <Link to="/templates">
+          <Link to="/app/templates">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Templates
           </Link>
@@ -414,7 +414,7 @@ Also suggest a template name based on the description.
           {/* Submit */}
           <div className="flex items-center justify-end gap-3">
             <Button type="button" variant="outline" asChild>
-              <Link to="/templates">Cancel</Link>
+              <Link to="/app/templates">Cancel</Link>
             </Button>
             <Button type="submit" disabled={isSaving || !name.trim() || milestones.length === 0}>
               {isSaving ? (

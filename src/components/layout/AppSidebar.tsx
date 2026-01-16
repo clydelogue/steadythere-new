@@ -27,13 +27,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Events', href: '/events', icon: Calendar },
-  { name: 'Templates', href: '/templates', icon: FileText },
-  { name: 'Documents', href: '/documents', icon: FolderOpen },
-  { name: 'Teams', href: '/users', icon: Users },
-  { name: 'AI Test', href: '/ai-test', icon: Bot },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/app', icon: LayoutDashboard },
+  { name: 'Events', href: '/app/events', icon: Calendar },
+  { name: 'Templates', href: '/app/templates', icon: FileText },
+  { name: 'Documents', href: '/app/documents', icon: FolderOpen },
+  { name: 'Teams', href: '/app/users', icon: Users },
+  { name: 'AI Test', href: '/app/ai-test', icon: Bot },
+  { name: 'Settings', href: '/app/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -50,7 +50,7 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-3">
+        <Link to="/app" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
@@ -103,7 +103,7 @@ export function AppSidebar() {
             collapsed && "px-0"
           )}
         >
-          <Link to="/events/new">
+          <Link to="/app/events/new">
             <Plus className="w-4 h-4" />
             {!collapsed && <span className="ml-2">New Event</span>}
           </Link>
@@ -167,7 +167,7 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
-                <Link to="/settings">
+                <Link to="/app/settings">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Link>

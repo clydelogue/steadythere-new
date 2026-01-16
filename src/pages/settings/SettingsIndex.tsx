@@ -6,7 +6,7 @@ const SettingsIndex = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    navigate('/settings/organization', { replace: true });
+    navigate('/app/settings/organization', { replace: true });
   }, [navigate]);
 
   return null;

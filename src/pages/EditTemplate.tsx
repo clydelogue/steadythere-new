@@ -164,7 +164,7 @@ const EditTemplate = () => {
       }
 
       toast.success('Template updated successfully');
-      navigate(`/templates/${id}`);
+      navigate(`/app/templates/${id}`);
     } catch (error: any) {
       if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
         toast.error('A template with this name already exists');
@@ -194,7 +194,7 @@ const EditTemplate = () => {
             The template you're looking for doesn't exist or has been deleted.
           </p>
           <Button asChild>
-            <Link to="/templates">
+            <Link to="/app/templates">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Templates
             </Link>
@@ -208,7 +208,7 @@ const EditTemplate = () => {
     <AppLayout title="Edit Template" subtitle={template.name}>
       <div className="max-w-3xl">
         <Button variant="ghost" size="sm" asChild className="mb-6">
-          <Link to={`/templates/${id}`}>
+          <Link to={`/app/templates/${id}`}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Template
           </Link>
@@ -381,7 +381,7 @@ const EditTemplate = () => {
           {/* Submit */}
           <div className="flex items-center justify-end gap-3">
             <Button type="button" variant="outline" asChild>
-              <Link to={`/templates/${id}`}>Cancel</Link>
+              <Link to={`/app/templates/${id}`}>Cancel</Link>
             </Button>
             <Button type="submit" disabled={isSaving || !name.trim() || milestones.length === 0}>
               {isSaving ? (

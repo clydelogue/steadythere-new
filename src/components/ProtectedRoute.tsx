@@ -23,7 +23,7 @@ export const ProtectedRoute = forwardRef<HTMLDivElement, ProtectedRouteProps>(
     }
 
     if (!user) {
-      return <Navigate to="/auth" state={{ from: location }} replace />;
+      return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     // If user has no org and needs one, redirect to onboarding
