@@ -18,11 +18,13 @@ describe('cn (classname utility)', () => {
 
   describe('conditional classes', () => {
     it('handles conditional classes with false', () => {
-      expect(cn('foo', false && 'bar', 'baz')).toBe('foo baz');
+      const condition = false;
+      expect(cn('foo', condition && 'bar', 'baz')).toBe('foo baz');
     });
 
     it('handles conditional classes with true', () => {
-      expect(cn('foo', true && 'bar', 'baz')).toBe('foo bar baz');
+      const condition = true;
+      expect(cn('foo', condition && 'bar', 'baz')).toBe('foo bar baz');
     });
 
     it('handles ternary conditions', () => {
