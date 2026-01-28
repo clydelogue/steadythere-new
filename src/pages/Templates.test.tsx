@@ -115,6 +115,6 @@ describe('Templates Page', () => {
 
     const createButtons = screen.getAllByRole('link', { name: /create/i });
     expect(createButtons.length).toBeGreaterThan(0);
-    expect(createButtons[0]).toHaveAttribute('href', '/templates/new');
+    expect(createButtons[0]).toHaveAttribute('href', '/app/templates/new');
   });
 });

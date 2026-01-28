@@ -9,6 +9,27 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      exclude: [
+        "node_modules/",
+        "src/test/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "src/components/ui/", // shadcn components
+        "src/main.tsx",
+        "src/vite-env.d.ts",
+      ],
+      // Thresholds (start low, increase over time)
+      thresholds: {
+        statements: 20,
+        branches: 20,
+        functions: 20,
+        lines: 20,
+      },
+    },
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
