@@ -104,7 +104,7 @@ Let me know if you'd like to adjust any of these milestones!`;
       ];
 
       const processCategory = (category: string) =>
-        CATEGORIES.includes(category as any) ? category : 'GENERAL';
+        (CATEGORIES as string[]).includes(category) ? category : 'GENERAL';
 
       expect(processCategory('VENUE')).toBe('VENUE');
       expect(processCategory('UNKNOWN')).toBe('GENERAL');
@@ -140,7 +140,7 @@ Let me know if you'd like to adjust any of these milestones!`;
     });
 
     it('should handle missing optional fields', () => {
-      const aiMilestone = {
+      const aiMilestone: { title: string; category: string; daysBeforeEvent: number; description?: string; estimatedHours?: number } = {
         title: 'Simple task',
         category: 'GENERAL',
         daysBeforeEvent: 30,
@@ -149,10 +149,10 @@ Let me know if you'd like to adjust any of these milestones!`;
       const appMilestone = {
         id: 'test-id',
         title: aiMilestone.title,
-        description: (aiMilestone as any).description || '',
+        description: aiMilestone.description || '',
         category: aiMilestone.category,
         days_before_event: aiMilestone.daysBeforeEvent || 30,
-        estimated_hours: (aiMilestone as any).estimatedHours,
+        estimated_hours: aiMilestone.estimatedHours,
       };
 
       expect(appMilestone.description).toBe('');
@@ -242,11 +242,19 @@ describe('parseAIMilestones - edge cases', () => {
   const processCategory = (category: string) =>
     CATEGORIES.includes(category) ? category : 'GENERAL';
 
-  const processMilestone = (m: any) => ({
+  interface AIMilestone {
+    title?: string;
+    description?: string | null;
+    category?: string;
+    daysBeforeEvent?: number | string;
+    estimatedHours?: number | null;
+  }
+
+  const processMilestone = (m: AIMilestone) => ({
     id: 'test-id',
     title: m.title || '',
     description: m.description || '',
-    category: processCategory(m.category),
+    category: processCategory(m.category || ''),
     days_before_event: typeof m.daysBeforeEvent === 'number' ? m.daysBeforeEvent : 30,
     estimated_hours: m.estimatedHours,
   });
